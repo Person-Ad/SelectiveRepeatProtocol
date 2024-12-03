@@ -15,11 +15,7 @@
 
 #include "Node.h"
 
-#include "CustomMessage_m.h"
-#include "Utils.h"
-#include "Framing.h"
-#include "Logger.h"
-#include <bitset> 
+
 
 Define_Module(Node);
 
@@ -30,49 +26,108 @@ void Node::initialize()
 
 void Node::handleMessage(cMessage *msg)
 {
-    CustomMessage_Base *receivedMsg = check_and_cast<CustomMessage_Base *>(msg);
-    std::string payload = receivedMsg->getPayload();
-    char trailerChar = receivedMsg->getTrailer();
-    std::string trailer = std::bitset<8> (trailerChar).to_string();
-
-    int frameType = receivedMsg->getFrameType();
-    if (frameType == 3){ // It means it's from coordinator and time to start
-        isSenderNode = true; 
-        std::string nodeName = std::string(getName());
-        int nodeIndex = nodeName.back() - '0';
-        // Reading the file and storing it 
-        lines = Utils::readFileLines("../text_files/input" + std::to_string(nodeIndex) + ".txt");
-        
-        // Sending the first message 
-        std::pair<int,std::string> extractedMessage = Utils::extractMessage(lines[0]);
-        int errorNumber = extractedMessage.first; 
-        std::string message = extractedMessage.second; 
-        std::string stuffedMessage = Framing::stuff(message);
-        std::string CRC = CRCModule->computeCRC(Utils::stringToBinaryStream(stuffedMessage));
-
-        sendDataMessage(stuffedMessage, CRC);
-    }else if(isSenderNode){ // It means I will receive ACK/NACK 
-        
-    }else{ // It means I received data
-        // Validating CRC 
-        bool valid = CRCModule->validateCRC(Utils::stringToBinaryStream(payload) + trailer);
-        if(!valid){
-            std::cout<<"Error occurred\n";
-        }else{
-            std::cout<<"Valid !\n";
-            std::string unstuffedMessage = Framing::unstuff(payload);
-            EV << unstuffedMessage <<"\n";
-        }
-    }
+     // Extract and validate the received message
+    CustomMessage_Base *receivedMsg = check_and_cast<CustomMessage_Base *>(msg); 
     
+    // Handle different message types based on frame type
+    int frameType = receivedMsg->getFrameType(); 
+    
+    if (isCoordinatorInitiationMessage(frameType)) {
+        handleCoordinatorInitiation(receivedMsg);
+    } else if (isSenderNode) {
+        handleAckNackResponse(receivedMsg);
+    } else {
+        handleIncomingDataMessage(receivedMsg);
+    }
 
 }
+bool Node::isCoordinatorInitiationMessage(int frameType) 
+{
+    return frameType == 3; // Coordinator start signal
+}
 
-void Node::sendDataMessage(std::string messageValue, std::string trailer){
+void Node::handleCoordinatorInitiation(CustomMessage_Base *receivedMsg) 
+{
+    // Set sender node flag
+    isSenderNode = true;  
+    
+    // Determine node index from name
+    int nodeIndex = extractNodeIndex();
+    
+    // Read input file for this node
+    lines = Utils::readFileLines(generateInputFilePath(nodeIndex)); 
+    
+    // Prepare and send first message
+    sendDataMessage(0);
+}
+
+int Node::extractNodeIndex() 
+{
+    std::string nodeName = std::string(getName()); 
+    return nodeName.back() - '0'; 
+}
+
+std::string Node::generateInputFilePath(int nodeIndex) 
+{
+    return "../text_files/input" + std::to_string(nodeIndex) + ".txt";
+}
+
+void Node::handleAckNackResponse(CustomMessage_Base *receivedMsg) 
+{
+    // Implement ACK/NACK handling logic
+    // This method is currently empty in the original code
+    // Add appropriate logic for handling sender node responses
+}
+
+void Node::handleIncomingDataMessage(CustomMessage_Base *receivedMsg) 
+{
+    // Extract message details
+    std::string payload = receivedMsg->getPayload(); 
+    char trailerChar = receivedMsg->getTrailer(); 
+    std::string trailer = std::bitset<8>(trailerChar).to_string(); 
+ 
+    // Validate CRC
+    bool valid = validateMessageCRC(payload, trailer);
+    
+    if (!valid) {
+        handleCRCError();
+    } else {
+        processValidMessage(payload);
+    }
+}
+
+bool Node::validateMessageCRC(const std::string& payload, const std::string& trailer) 
+{
+    return CRCModule->validateCRC(Utils::stringToBinaryStream(payload) + trailer);
+}
+
+void Node::handleCRCError() 
+{
+    std::cout << "Error occurred\n";
+}
+
+void Node::processValidMessage(const std::string& payload) 
+{
+    std::cout << "Valid !\n";
+    std::string unstuffedMessage = Framing::unstuff(payload); 
+    EV << unstuffedMessage << "\n";
+}
+
+void Node::sendDataMessage(int index){
+    // Extract first message from lines
+    std::pair<int,std::string> extractedMessage = Utils::extractMessage(lines[index]); 
+    int errorNumber = extractedMessage.first;  
+    std::string message = extractedMessage.second;  
+    
+    // Stuff the message and compute CRC
+    std::string stuffedMessage = Framing::stuff(message); 
+    std::string CRC = CRCModule->computeCRC(Utils::stringToBinaryStream(stuffedMessage)); 
+ 
+    // Send the data message
     CustomMessage_Base *customMessage = new CustomMessage_Base();
     customMessage->setPayload(messageValue.c_str());
     customMessage->setName(customMessage->getPayload());
-    char trailerChar = static_cast<char>(std::stoi(trailer, nullptr, 2));
+    char trailerChar = static_cast<char>(std::stoi(CRC, nullptr, 2));
     customMessage->setTrailer(trailerChar);
     send(customMessage, "dataGate$o");
 }

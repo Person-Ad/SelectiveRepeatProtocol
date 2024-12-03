@@ -18,6 +18,11 @@
 
 #include <omnetpp.h>
 #include "ErrorDetection.h"
+#include "CustomMessage_m.h"
+#include "Utils.h"
+#include "Framing.h"
+#include "Logger.h"
+#include <bitset> 
 
 using namespace omnetpp;
 
@@ -47,7 +52,25 @@ class Node : public cSimpleModule
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
-    void sendDataMessage(std::string messageValue, std::string trailer);
+    void sendDataMessage(int index);
+
+
+    // Message type detection methods
+    bool isCoordinatorInitiationMessage(int frameType);
+
+    // Message handling methods
+    void handleCoordinatorInitiation(CustomMessage_Base *receivedMsg);
+    void handleAckNackResponse(CustomMessage_Base *receivedMsg);
+    void handleIncomingDataMessage(CustomMessage_Base *receivedMsg);
+
+    // Utility methods for message processing
+    int extractNodeIndex();
+    std::string generateInputFilePath(int nodeIndex);
+    
+    // CRC and message validation methods
+    bool validateMessageCRC(const std::string& payload, const std::string& trailer);
+    void handleCRCError();
+    void processValidMessage(const std::string& payload);
 
 };
 
