@@ -8,49 +8,49 @@
 
 #include "Logger.h"
 
-std::ofstream Logger::logFile;
-
-Logger::Logger(const std::string& logFilePath) {
+Logger::Logger(const std::string& logFilePath,int senderIndex) {
     // Open the log file in append mode
     logFile.open(logFilePath, std::ios::app);
     if (!logFile.is_open()) {
         std::cerr << "Error opening log file: " << logFilePath << std::endl;
     }
+    this->senderIndex = senderIndex;
+    this->receiverIndex = getReceiver(senderIndex);
 }
 
-void Logger::logTime(double time, int nodeId, const std::string& message) {
+void Logger::logTime(double time, const std::string& message) {
     std::stringstream logMessage;
-    logMessage << "At time [" << time << "], Node[" << nodeId << "] , " << message;
+    logMessage << "At time [" << time << "], Node[" << senderIndex << "] , " << message;
     logFile << logMessage.str() << std::endl;
 }
 
-void Logger::logFrameSent(double time, int nodeId, int seqNum, const std::string& payload, 
+void Logger::logFrameSent(double time, int seqNum, const std::string& payload, 
                           const std::string& trailer, int modified, bool lost, int duplicate, int delay) {
     std::stringstream logMessage;
-    logMessage << "At time [" << time << "], Node[" << nodeId << "] [sent] frame with seq_num=[" << seqNum 
+    logMessage << "At time [" << time << "], Node[" << senderIndex << "] [sent] frame with seq_num=[" << seqNum 
                << "] and payload=[" << payload << "] and trailer=[" << trailer << "] , Modified [" 
                << modified << "] , Lost [" << (lost ? "Yes" : "No") << "], Duplicate [" << duplicate 
                << "], Delay [" << delay << "].";
     logFile << logMessage.str() << std::endl;
 }
 
-void Logger::logChannelError(double time, int nodeId, const std::string& errorCode) {
+void Logger::logChannelError(double time, const std::string& errorCode) {
     std::stringstream logMessage;
-    logMessage << "At time [" << time << "], Node[" << nodeId << "] , Introducing channel error with code =[" 
+    logMessage << "At time [" << time << "], Node[" << senderIndex << "] , Introducing channel error with code =[" 
                << errorCode << "] .";
     logFile << logMessage.str() << std::endl;
 }
 
-void Logger::logUpload(double time, int nodeId, const std::string& payload, int seqNum) {
+void Logger::logUpload(double time, const std::string& payload, int seqNum) {
     std::stringstream logMessage;
-    logMessage << "Uploading payload = [" << payload << "], Node[" << nodeId << "] and seq_num = [" 
+    logMessage << "Uploading payload = [" << payload << "], Node[" << senderIndex << "] and seq_num = [" 
                << seqNum << "] to the network layer";
     logFile << logMessage.str() << std::endl;
 }
 
-void Logger::logACK(double time, int nodeId, int ackNum, bool loss) {
+void Logger::logACK(double time, int ackNum, bool loss) {
     std::stringstream logMessage;
-    logMessage << "At time [" << time << "], Node[" << nodeId << "] Sending [ACK] with number [" 
+    logMessage << "At time [" << time << "], Node[" << senderIndex << "] Sending [ACK] with number [" 
                << ackNum << "] ,loss [" << (loss ? "Yes" : "No") << "].";
     logFile << logMessage.str() << std::endl;
 }
@@ -62,6 +62,6 @@ Logger::~Logger() {
     }
 }
 
-int Logger::getReceiver(int nodeId) {
-    return 1 - nodeId;  // If nodeId is 0, receiver is 1, and vice versa
+int Logger::getReceiver(int senderIndex) {
+    return 1 - senderIndex;  // If senderIndex is 0, receiver is 1, and vice versa
 }

@@ -67,7 +67,7 @@ void Node::handleCoordinatorInitiation(CustomMessage_Base *receivedMsg)
     int startTime = atoi(receivedMsg->getPayload());
     CustomMessage_Base *customMessage = new CustomMessage_Base();
     scheduleAt(simTime() + startTime, customMessage);
-
+    logger = new Logger("../text_files/output.txt",nodeIndex);
 }
 
 int Node::extractNodeIndex() 
@@ -142,4 +142,5 @@ void Node::sendDataMessage(int index){
     char trailerChar = static_cast<char>(std::stoi(CRC, nullptr, 2));
     customMessage->setTrailer(trailerChar);
     send(customMessage, "dataGate$o");
+    logger->logFrameSent(simTime().dbl(), index, stuffedMessage, CRC, false, false, false, 0);
 }

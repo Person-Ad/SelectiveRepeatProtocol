@@ -59,7 +59,7 @@ class Node : public cSimpleModule
   public:
     NetworkParameters networkParams;
     bool isSenderNode = false; 
-    
+    Logger *  logger; 
     // Sender related parameters
     std::vector<std::string> lines;
     int send_next_frame = 0; 

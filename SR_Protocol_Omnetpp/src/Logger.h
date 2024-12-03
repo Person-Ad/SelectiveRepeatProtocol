@@ -16,19 +16,21 @@
 
 class Logger {
 public:
-    Logger(const std::string& logFilePath);
+    Logger(const std::string& logFilePath,int senderIndex);
     ~Logger();
-    static void logTime(double time, int nodeId, const std::string& message);
-    static void logFrameSent(double time, int nodeId, int seqNum, const std::string& payload, 
+    void logTime(double time, const std::string& message);
+    void logFrameSent(double time, int seqNum, const std::string& payload, 
                              const std::string& trailer, int modified, bool lost, int duplicate, int delay);
-    static void logChannelError(double time, int nodeId, const std::string& errorCode);
-    static void logUpload(double time, int nodeId, const std::string& payload, int seqNum);
-    static void logACK(double time, int nodeId, int ackNum, bool loss);
+    void logChannelError(double time, const std::string& errorCode);
+    void logUpload(double time, const std::string& payload, int seqNum);
+    void logACK(double time, int ackNum, bool loss);
 
     private:
-    static int getReceiver(int nodeId);
-    
-    static std::ofstream logFile;
+    int getReceiver(int nodeId);
+    int senderIndex; 
+    int receiverIndex; 
+
+    std::ofstream logFile;
 };
 
 #endif /* LOGGER_H_ */
