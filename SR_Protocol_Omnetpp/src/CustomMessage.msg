@@ -22,6 +22,6 @@ packet CustomMessage {
     char header;        // Data sequence number
     string payload;    // Message contents after byte stuffing (as characters)
     char trailer;      // Parity byte
-    int frameType;     // Frame type: Data=2, ACK=1, NACK=0
+    int frameType;     // Frame type: Data=2, ACK=1, NACK=0, Control=3
     int ackNackNumber; // ACK/NACK number
 }

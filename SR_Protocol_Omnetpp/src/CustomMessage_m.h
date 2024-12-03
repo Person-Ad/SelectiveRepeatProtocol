@@ -31,7 +31,7 @@
  *     char header;        // Data sequence number
  *     string payload;    // Message contents after byte stuffing (as characters)
  *     char trailer;      // Parity byte
- *     int frameType;     // Frame type: Data=2, ACK=1, NACK=0
+ *     int frameType;     // Frame type: Data=2, ACK=1, NACK=0, Control=3
  *     int ackNackNumber; // ACK/NACK number
  * }
  * </pre>
@@ -81,7 +81,7 @@ class CustomMessage_Base : public ::omnetpp::cPacket
 
   public:
     virtual ~CustomMessage_Base();
-    virtual CustomMessage_Base *dup() const override {throw omnetpp::cRuntimeError("You forgot to manually add a dup() function to class CustomMessage");}
+    virtual CustomMessage_Base *dup() const override {return new CustomMessage_Base(*this);}
     virtual void parsimPack(omnetpp::cCommBuffer *b) const override;
     virtual void parsimUnpack(omnetpp::cCommBuffer *b) override;
 

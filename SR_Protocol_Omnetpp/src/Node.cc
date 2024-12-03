@@ -29,8 +29,33 @@ void Node::initialize()
 
 void Node::handleMessage(cMessage *msg)
 {
-    getName();
+    CustomMessage_Base *receivedMsg = check_and_cast<CustomMessage_Base *>(msg);
+    std::string payload = receivedMsg->getPayload();
+    int frameType = receivedMsg->getFrameType();
+    if (frameType == 3){ // It means it's from coordinator and time to start
+        isSenderNode = true; 
+        std::string nodeName = std::string(getName());
+        int nodeIndex = nodeName.back() - '0';
+        // Reading the file and storing it 
+        lines = Utils::readFileLines("../text_files/input" + std::to_string(nodeIndex) + ".txt");
+        
+        // Sending the first message 
+        std::pair<int,std::string> extractedMessage = Utils::extractMessage(lines[0]);
+        int errorNumber = extractedMessage.first; 
+        std::string message = extractedMessage.second; 
+        sendDataMessage(message);
+    }else if(isSenderNode){
+
+    }else{
+
+    }
+    
+
+}
+
+void Node::sendDataMessage(std::string messageValue){
     CustomMessage_Base *customMessage = new CustomMessage_Base();
+    customMessage->setPayload(messageValue.c_str());
     customMessage->setName(customMessage->getPayload());
     send(customMessage, "dataGate$o");
 }

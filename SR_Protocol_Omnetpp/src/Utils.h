@@ -16,7 +16,7 @@ public:
     Utils();
         
     static std::vector<std::string> readFileLines(const std::string& filePath);
-
+    static std::pair<int, std::string> extractMessage(const std::string& input);
     virtual ~Utils();
 };
 

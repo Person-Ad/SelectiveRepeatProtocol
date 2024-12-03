@@ -12,14 +12,29 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
+#include <sstream>
 
 #include "Coordinator.h"
+#include "Utils.h"
+#include "CustomMessage_m.h"
 
 Define_Module(Coordinator);
 
 void Coordinator::initialize()
 {
-    // TODO - Generated method body
+    std::vector<std::string> lines = Utils::readFileLines("../text_files/coordinator.txt");
+    std::istringstream stream(lines[0]);
+
+    int node , startTime; 
+    stream >> node >> startTime ; 
+
+    // Sending the start time to the correct node
+    CustomMessage_Base *customMessage = new CustomMessage_Base();
+    customMessage->setPayload(std::to_string(startTime).c_str());
+    customMessage->setName(customMessage->getPayload());
+    customMessage->setFrameType(3); // Control Type 
+    send(customMessage, "controlGate" , node);
+
 }
 
 void Coordinator::handleMessage(cMessage *msg)

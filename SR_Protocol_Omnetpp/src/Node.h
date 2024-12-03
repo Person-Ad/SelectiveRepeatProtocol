@@ -25,9 +25,22 @@ using namespace omnetpp;
  */
 class Node : public cSimpleModule
 {
+  public:
+    int WS = 0;
+    double TO = 0;
+    double PT = 0;
+    double TD = 0;
+    double ED = 0;
+    double DD = 0;
+    double LP = 0;
+
+    bool isSenderNode = false; 
+    std::vector<std::string> lines; 
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
+    void sendDataMessage(std::string messageValue);
+
 };
 
 #endif
