@@ -34,6 +34,7 @@ OBJS = \
     $O/Coordinator.o \
     $O/ErrorDetection.o \
     $O/Framing.o \
+    $O/Logger.o \
     $O/Node.o \
     $O/Utils.o \
     $O/CustomMessage_m.o

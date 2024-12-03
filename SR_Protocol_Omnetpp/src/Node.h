@@ -35,7 +35,11 @@ class Node : public cSimpleModule
     double LP = 0;
 
     bool isSenderNode = false; 
-    std::vector<std::string> lines; 
+    
+    // Sender related parameters
+    std::vector<std::string> lines;
+    int send_next_frame = 0; 
+
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);

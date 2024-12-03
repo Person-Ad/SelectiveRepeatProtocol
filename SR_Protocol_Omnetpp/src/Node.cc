@@ -19,6 +19,7 @@
 #include "Utils.h"
 #include "ErrorDetection.h"
 #include "Framing.h"
+#include "Logger.h"
 
 Define_Module(Node);
 
@@ -44,9 +45,10 @@ void Node::handleMessage(cMessage *msg)
         int errorNumber = extractedMessage.first; 
         std::string message = extractedMessage.second; 
         sendDataMessage(message);
-    }else if(isSenderNode){
-
-    }else{
+    }else if(isSenderNode){ // It means I will receive ACK/NACK 
+        
+    }else{ // It means I received data 
+        std::string unstuffedMessage = Framing::unstuff(payload);
 
     }
     
