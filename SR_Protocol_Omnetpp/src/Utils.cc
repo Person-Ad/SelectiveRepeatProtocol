@@ -8,6 +8,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <sstream>
+#include <bitset>
 
 #include "Utils.h"
 
@@ -53,7 +54,17 @@ std::pair<int, std::string> Utils::extractMessage(const std::string& input){
     return {errorNumber, sentence};
 }
 
+std::string Utils::stringToBinaryStream(const std::string& input) {
+    std::string binaryStream;
 
+    // Convert each character in the input string to its binary representation
+    for (char c : input) {
+        std::bitset<8> bits(c); // Convert each character to 8-bit binary
+        binaryStream += bits.to_string(); // Append binary representation to the stream
+    }
+
+    return binaryStream;
+}
 Utils::~Utils() {
     // TODO Auto-generated destructor stub
 }

@@ -17,21 +17,24 @@
 
 #include "CustomMessage_m.h"
 #include "Utils.h"
-#include "ErrorDetection.h"
 #include "Framing.h"
 #include "Logger.h"
+#include <bitset> 
 
 Define_Module(Node);
 
 void Node::initialize()
 {
-    // TODO - Generated method body
+    CRCModule = new ErrorDetection("101");
 }
 
 void Node::handleMessage(cMessage *msg)
 {
     CustomMessage_Base *receivedMsg = check_and_cast<CustomMessage_Base *>(msg);
     std::string payload = receivedMsg->getPayload();
+    char trailerChar = receivedMsg->getTrailer();
+    std::string trailer = std::bitset<8> (trailerChar).to_string();
+
     int frameType = receivedMsg->getFrameType();
     if (frameType == 3){ // It means it's from coordinator and time to start
         isSenderNode = true; 
@@ -44,20 +47,32 @@ void Node::handleMessage(cMessage *msg)
         std::pair<int,std::string> extractedMessage = Utils::extractMessage(lines[0]);
         int errorNumber = extractedMessage.first; 
         std::string message = extractedMessage.second; 
-        sendDataMessage(message);
+        std::string stuffedMessage = Framing::stuff(message);
+        std::string CRC = CRCModule->computeCRC(Utils::stringToBinaryStream(stuffedMessage));
+
+        sendDataMessage(stuffedMessage, CRC);
     }else if(isSenderNode){ // It means I will receive ACK/NACK 
         
-    }else{ // It means I received data 
-        std::string unstuffedMessage = Framing::unstuff(payload);
-
+    }else{ // It means I received data
+        // Validating CRC 
+        bool valid = CRCModule->validateCRC(Utils::stringToBinaryStream(payload) + trailer);
+        if(!valid){
+            std::cout<<"Error occurred\n";
+        }else{
+            std::cout<<"Valid !\n";
+            std::string unstuffedMessage = Framing::unstuff(payload);
+            EV << unstuffedMessage <<"\n";
+        }
     }
     
 
 }
 
-void Node::sendDataMessage(std::string messageValue){
+void Node::sendDataMessage(std::string messageValue, std::string trailer){
     CustomMessage_Base *customMessage = new CustomMessage_Base();
     customMessage->setPayload(messageValue.c_str());
     customMessage->setName(customMessage->getPayload());
+    char trailerChar = static_cast<char>(std::stoi(trailer, nullptr, 2));
+    customMessage->setTrailer(trailerChar);
     send(customMessage, "dataGate$o");
 }

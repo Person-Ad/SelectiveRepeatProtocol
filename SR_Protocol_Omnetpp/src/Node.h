@@ -17,6 +17,7 @@
 #define __SR_PROTOCOL_OMNETPP_NODE_H_
 
 #include <omnetpp.h>
+#include "ErrorDetection.h"
 
 using namespace omnetpp;
 
@@ -40,10 +41,13 @@ class Node : public cSimpleModule
     std::vector<std::string> lines;
     int send_next_frame = 0; 
 
+    // CRC Error Detection 
+    ErrorDetection * CRCModule ;
+
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
-    void sendDataMessage(std::string messageValue);
+    void sendDataMessage(std::string messageValue, std::string trailer);
 
 };
 
