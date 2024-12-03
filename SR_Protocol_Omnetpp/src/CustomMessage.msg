@@ -13,19 +13,15 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#include "Node.h"
-#include "CustomMessage_m.h"
+//
+// TODO generated message class
+//
+packet CustomMessage {
+    @customize(true);  // see the generated C++ header for more info
 
-Define_Module(Node);
-
-void Node::initialize()
-{
-    // TODO - Generated method body
-}
-
-void Node::handleMessage(cMessage *msg)
-{
-    CustomMessage_Base *customMessage = new CustomMessage_Base();
-    customMessage->setName(customMessage->getPayload());
-    send(customMessage, "dataGate$o");
+    char header;        // Data sequence number
+    string payload;    // Message contents after byte stuffing (as characters)
+    char trailer;      // Parity byte
+    int frameType;     // Frame type: Data=2, ACK=1, NACK=0
+    int ackNackNumber; // ACK/NACK number
 }
