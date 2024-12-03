@@ -14,7 +14,11 @@
 // 
 
 #include "Node.h"
+
 #include "CustomMessage_m.h"
+#include "Utils.h"
+#include "ErrorDetection.h"
+#include "Framing.h"
 
 Define_Module(Node);
 
@@ -25,6 +29,7 @@ void Node::initialize()
 
 void Node::handleMessage(cMessage *msg)
 {
+    getName();
     CustomMessage_Base *customMessage = new CustomMessage_Base();
     customMessage->setName(customMessage->getPayload());
     send(customMessage, "dataGate$o");

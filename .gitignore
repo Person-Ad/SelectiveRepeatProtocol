@@ -1,1 +1,8 @@
 /.metadata/
+
+SR_Protocol_Omnetpp/src/*.exe
+SR_Protocol_Omnetpp/out/clang-release/src/*.exe
+SR_Protocol_Omnetpp/out/clang-release/src/*.o
+SR_Protocol_Omnetpp/out/clang-release/src/*.o.d
+SR_Protocol_Omnetpp/out/clang-release/src/SR_Protocol_Omnetpp.exe
+
