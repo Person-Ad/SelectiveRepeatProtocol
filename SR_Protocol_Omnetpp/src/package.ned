@@ -6,6 +6,14 @@ package sr_protocol_omnetpp;
 //
 network Network
 {
+     parameters:
+        int WS ;
+        double TO ;
+        double PT ;
+        double TD ;
+        double ED ;
+        double DD ;
+        double LP ;
     @display("bgb=413,227");
     submodules:
         node0: Node {

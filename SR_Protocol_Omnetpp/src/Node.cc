@@ -22,6 +22,7 @@ Define_Module(Node);
 void Node::initialize()
 {
     CRCModule = new ErrorDetection("101");
+    networkParams = NetworkParameters::loadFromModule(getParentModule());
 }
 
 void Node::handleMessage(cMessage *msg)
@@ -35,7 +36,12 @@ void Node::handleMessage(cMessage *msg)
     if (isCoordinatorInitiationMessage(frameType)) {
         handleCoordinatorInitiation(receivedMsg);
     } else if (isSenderNode) {
-        handleAckNackResponse(receivedMsg);
+         if (msg->isSelfMessage()){
+                sendDataMessage(send_next_frame);
+                incrementCircular(send_next_frame);
+         }else{
+            handleAckNackResponse(receivedMsg);
+         }
     } else {
         handleIncomingDataMessage(receivedMsg);
     }
@@ -58,7 +64,10 @@ void Node::handleCoordinatorInitiation(CustomMessage_Base *receivedMsg)
     lines = Utils::readFileLines(generateInputFilePath(nodeIndex)); 
     
     // Prepare and send first message
-    sendDataMessage(0);
+    int startTime = atoi(receivedMsg->getPayload());
+    CustomMessage_Base *customMessage = new CustomMessage_Base();
+    scheduleAt(simTime() + startTime, customMessage);
+
 }
 
 int Node::extractNodeIndex() 
@@ -67,6 +76,9 @@ int Node::extractNodeIndex()
     return nodeName.back() - '0'; 
 }
 
+void Node::incrementCircular(int & number){
+    number = (number + 1)%networkParams.WS;
+}
 std::string Node::generateInputFilePath(int nodeIndex) 
 {
     return "../text_files/input" + std::to_string(nodeIndex) + ".txt";
@@ -125,7 +137,7 @@ void Node::sendDataMessage(int index){
  
     // Send the data message
     CustomMessage_Base *customMessage = new CustomMessage_Base();
-    customMessage->setPayload(messageValue.c_str());
+    customMessage->setPayload(stuffedMessage.c_str());
     customMessage->setName(customMessage->getPayload());
     char trailerChar = static_cast<char>(std::stoi(CRC, nullptr, 2));
     customMessage->setTrailer(trailerChar);

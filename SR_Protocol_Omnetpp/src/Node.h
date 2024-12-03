@@ -29,17 +29,35 @@ using namespace omnetpp;
 /**
  * TODO - Generated class
  */
+struct NetworkParameters {
+    int WS;    // Window Size
+    double TO; // Timeout
+    double PT; // Processing Time
+    double TD; // Transmission Delay
+    double ED; // End Delay
+    double DD; // Drop Delay
+    double LP; // Loss Probability
+
+    // Factory method to load parameters
+    static NetworkParameters loadFromModule(cModule* parentModule) {
+        NetworkParameters params;
+        
+        params.WS = parentModule->par("WS").intValue();
+        params.TO = parentModule->par("TO").doubleValue();
+        params.PT = parentModule->par("PT").doubleValue();
+        params.TD = parentModule->par("TD").doubleValue();
+        params.ED = parentModule->par("ED").doubleValue();
+        params.DD = parentModule->par("DD").doubleValue();
+        params.LP = parentModule->par("LP").doubleValue();
+
+        return params;
+    }
+};
+
 class Node : public cSimpleModule
 {
   public:
-    int WS = 0;
-    double TO = 0;
-    double PT = 0;
-    double TD = 0;
-    double ED = 0;
-    double DD = 0;
-    double LP = 0;
-
+    NetworkParameters networkParams;
     bool isSenderNode = false; 
     
     // Sender related parameters
@@ -71,6 +89,9 @@ class Node : public cSimpleModule
     bool validateMessageCRC(const std::string& payload, const std::string& trailer);
     void handleCRCError();
     void processValidMessage(const std::string& payload);
+
+    // Window Functions 
+    void incrementCircular(int & number);
 
 };
 
