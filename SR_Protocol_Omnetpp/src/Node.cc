@@ -25,6 +25,8 @@ void Node::initialize()
     networkParams = NetworkParameters::loadFromModule(getParentModule());
     windowEnd = networkParams.WS - 1 ;
     buffer = std::vector<CustomMessage_Base *>(networkParams.WS);
+    in_buffer = std::vector<CustomMessage_Base *>(networkParams.WS);
+    too_far = networkParams.WS ;
 }
 
 void Node::handleMessage(cMessage *msg)
@@ -170,10 +172,15 @@ void Node::handleCRCError()
 
 void Node::processValidReceivedMessage(const std::string& payload) 
 {
-     std::string unstuffedMessage = Framing::unstuff(payload);
-     Logger::logUpload(simTime().dbl(), unstuffedMessage, receiverCurrentIndex);
      // Send ACK to sender 
+    while (in_buffer[frame_expected % networkParams.WS] != nullptr) {
+        to_network_layer(in_buffer[frame_expected % networkParams.WS]);
+        in_buffer[frame_expected % networkParams.WS] = nullptr;
+        frame_expected = (frame_expected + 1) % (networkParams.SN + 1);
+        too_far = (too_far + 1) % (networkParams.SN + 1);
+    }
      CustomMessage_Base* ackMessage = new CustomMessage_Base();
+     ackMessage->setAckNackNumber((frame_expected + networkParams.SN - 1) % (networkParams.SN + 1));
      ackMessage->setFrameType(static_cast<int>(FrameType::ACK));
      sendDelayed(ackMessage, networkParams.TD ,"dataGate$o");
 }
@@ -212,7 +219,7 @@ bool Node::shouldContinueReading(int rangeStart, int rangeEnd, int currentSeq) {
 
 
 void Node::processMessage(int index) {
-    // It means I can't process more because the buffer is full
+    // It means I can't process more because the buffer is full or there is no more packets
     if(nbuffered >= networkParams.WS || packets.empty()){
         return ; 
     }
@@ -251,4 +258,8 @@ void Node::startTimer(int x){
 
 void Node::stopTimer(int x){
     
+}
+void Node::to_network_layer(CustomMessage_Base *receivedMsg){
+    std::string unstuffedMessage = Framing::unstuff(receivedMsg->getPayload());
+    Logger::logUpload(simTime().dbl(), unstuffedMessage, receiverCurrentIndex);
 }

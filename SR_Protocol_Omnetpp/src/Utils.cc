@@ -73,6 +73,9 @@ std::string Utils::binaryStringFromChar(char trailer) {
     std::bitset<8> bits(static_cast<unsigned char>(trailer));
     return bits.to_string();
 }
+bool Utils::between(int a, int b, int c) {
+    return ((a <= b && b < c) || (c < a && a <= b) || (b < c && c < a));
+}
 Utils::~Utils() {
     // TODO Auto-generated destructor stub
 }

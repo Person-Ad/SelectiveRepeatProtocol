@@ -85,6 +85,9 @@ class Node : public cSimpleModule
     int receiverWindowStart = 0;      // Start index of the window
     int receiverWindowEnd = 0;        // End index of the window
     int receiverCurrentIndex = 0;     // Current index being processed within the window
+    int frame_expected = 0;
+    int too_far = 0; 
+    std::vector<CustomMessage_Base *> in_buffer;
 
   protected:
     virtual void initialize();
@@ -103,6 +106,9 @@ class Node : public cSimpleModule
     void handleIncomingDataMessage(CustomMessage_Base *receivedMsg);
     bool shouldContinueReading(int rangeStart, int rangeEnd, int currentSeq);
     void processMessage(int);
+
+    // Network Layer 
+    void to_network_layer(CustomMessage_Base *receivedMsg);
     // Timer Methods 
     void startTimer(int);
     void stopTimer(int);
