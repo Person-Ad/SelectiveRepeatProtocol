@@ -24,6 +24,7 @@ void Node::initialize()
     CRCModule = new ErrorDetection("101");
     networkParams = NetworkParameters::loadFromModule(getParentModule());
     windowEnd = networkParams.WS - 1 ;
+    buffer = std::vector<CustomMessage_Base *>(networkParams.WS);
 }
 
 void Node::handleMessage(cMessage *msg)
@@ -36,42 +37,33 @@ void Node::handleMessage(cMessage *msg)
 
     if (isCoordinatorInitiationMessage(receivedMsg->getFrameType())) {
         handleCoordinatorInitiation(receivedMsg);
-    } else if (isSenderNode) {
-         if (msg->isSelfMessage()){
-             switch (frameType) {
-                case FrameType::NACK:
-                    // Handle NACK (Negative Acknowledgment)
-                    EV << "Received NACK message" << std::endl;
-                    // handleNack(receivedMsg);
-                    break;
+    } else if (isSenderNode) {       
+        switch (frameType) {
+            case FrameType::NACK:
+                // Handle NACK (Negative Acknowledgment)
+                handleNackResponse(receivedMsg);
+                break;
 
-                case FrameType::ACK:
-                    // Handle ACK (Acknowledgment)
-                    EV << "Received ACK message" << std::endl;
-                    // handleAck(receivedMsg);
-                    break;
+            case FrameType::ACK:
+                // Handle ACK (Acknowledgment)
+                handleAckResponse(receivedMsg);
+                break;
 
-                case FrameType::SendTime:
-                    // Send to Receiver
-                    if(shouldContinueReading(windowStart,windowEnd,currentIndex)){
-                        sendDataMessage(currentIndex, receivedMsg);
-                        incrementCircular(currentIndex);
-                        processMessage(currentIndex);
-                    }
-                    break;
-                case FrameType::PrepareTime:
-                    // Start Preparing 
-                    processMessage(currentIndex);
-                    break;
-                default:
-                    // Handle unknown or unhandled frame types
-                    EV << "Received unknown frame type" << std::endl;
-                    break;
-            }
-      
-         }else{
-            handleAckNackResponse(receivedMsg);
-         }
+            case FrameType::SendTime:
+                // Send to Receiver
+                sendDataMessage(currentIndex, receivedMsg);
+                incrementCircular(currentIndex);
+                processMessage(currentIndex);
+                break;
+            case FrameType::PrepareTime:
+                // Start Preparing 
+                processMessage(currentIndex);
+                break;
+            default:
+                // Handle unknown or unhandled frame types
+                EV << "Received unknown frame type" << std::endl;
+                break;
+        }
     } else {
         handleIncomingDataMessage(receivedMsg);
     }
@@ -91,8 +83,10 @@ void Node::handleCoordinatorInitiation(CustomMessage_Base *receivedMsg)
     int nodeIndex = extractNodeIndex();
     
     // Read input file for this node
-    lines = Utils::readFileLines(generateInputFilePath(nodeIndex)); 
-    
+    std::vector<std::string> lines = Utils::readFileLines(generateInputFilePath(nodeIndex)); 
+    for (const auto& line : lines) {
+        packets.push(line);
+    }
     // Prepare and send first message
     int startTime = atoi(receivedMsg->getPayload());
     CustomMessage_Base *customMessage = new CustomMessage_Base();
@@ -111,7 +105,7 @@ void Node::incrementCircular(int & number){
     number = (number + 1)%networkParams.WS;
 }
 void Node::incrementWindowCircular(int & number){
-    number = (number + 1)%(networkParams.WS+1);
+    number = (number + 1)%(networkParams.SN+1);
 }
 std::string Node::generateInputFilePath(int nodeIndex) 
 {
@@ -132,8 +126,15 @@ void Node::handleAckNackResponse(CustomMessage_Base *receivedMsg)
 }
 void Node::handleAckResponse(CustomMessage_Base *receivedMsg)
 {
-    incrementWindowCircular(windowStart);
-    incrementWindowCircular(windowEnd);
+    int ackNo = receivedMsg->getAckNackNumber();
+    if (ackNo >= ack_expected && ackNo < currentIndex) {
+        while (ack_expected != ackNo) {
+            stopTimer(ack_expected); // Stop timers for acknowledged frames
+            nbuffered--;
+            ack_expected = (ack_expected + 1) % (networkParams.SN + 1); // Slide window
+        }
+    }
+    processMessage(currentIndex);
 }
 void Node::handleNackResponse(CustomMessage_Base *receivedMsg)
 {
@@ -171,6 +172,10 @@ void Node::processValidReceivedMessage(const std::string& payload)
 {
      std::string unstuffedMessage = Framing::unstuff(payload);
      Logger::logUpload(simTime().dbl(), unstuffedMessage, receiverCurrentIndex);
+     // Send ACK to sender 
+     CustomMessage_Base* ackMessage = new CustomMessage_Base();
+     ackMessage->setFrameType(static_cast<int>(FrameType::ACK));
+     sendDelayed(ackMessage, networkParams.TD ,"dataGate$o");
 }
 
 void Node::sendDataMessage(int index, CustomMessage_Base * msgToSend){
@@ -183,19 +188,40 @@ void Node::sendDataMessage(int index, CustomMessage_Base * msgToSend){
 }
 
 bool Node::shouldContinueReading(int rangeStart, int rangeEnd, int currentSeq) {
+    // Log the input values
+    EV << "shouldContinueReading called with rangeStart=" << rangeStart 
+       << ", rangeEnd=" << rangeEnd 
+       << ", currentSeq=" << currentSeq << endl;
+
+    bool result;
+    
     // Case 1: Non-wrapping range [rangeStart, rangeEnd)
     if (rangeStart <= rangeEnd) {
-        return currentSeq >= rangeStart && currentSeq < rangeEnd;
+        result = (currentSeq >= rangeStart && currentSeq < rangeEnd);
     }
     // Case 2: Wrapping range, e.g., [rangeStart, rangeEnd) in circular buffers
-    return (currentSeq >= rangeStart || currentSeq < rangeEnd);
+    else {
+        result = (currentSeq >= rangeStart || currentSeq < rangeEnd);
+    }
+
+    // Log the result before returning
+    EV << "Result of shouldContinueReading: " << (result ? "true" : "false") << endl;
+
+    return result;
 }
 
+
 void Node::processMessage(int index) {
+    // It means I can't process more because the buffer is full
+    if(nbuffered >= networkParams.WS || packets.empty()){
+        return ; 
+    }
     CustomMessage_Base* customMessage = new CustomMessage_Base();
     
     // Extract first message from lines
-    std::pair<int,std::string> extractedMessage = Utils::extractMessage(lines[index]); 
+    std::string nextLine = packets.front();
+    packets.pop();
+    std::pair<int,std::string> extractedMessage = Utils::extractMessage(nextLine); 
     int errorNumber = extractedMessage.first;  
     std::string message = extractedMessage.second;  
     
@@ -206,11 +232,23 @@ void Node::processMessage(int index) {
     customMessage->setName(customMessage->getPayload());
     char trailerChar = static_cast<char>(std::stoi(CRC, nullptr, 2));
     customMessage->setTrailer(trailerChar);
+    customMessage->setHeader(index);
     
     // Set the frame type to 'SendTime'
     customMessage->setFrameType(static_cast<int>(FrameType::SendTime));
     // Schedule the next message after the specified PT (Process Time)
     scheduleAt(simTime() + networkParams.PT, customMessage);
+    
+    // Adding the frame to buffer 
+    buffer[index % (networkParams.WS)] = customMessage;
     // Log 
     Logger::logChannelError(simTime().dbl(),Utils::toBinary4Bits(errorNumber));
+}
+
+void Node::startTimer(int x){
+    
+}
+
+void Node::stopTimer(int x){
+    
 }

@@ -23,6 +23,7 @@
 #include "Framing.h"
 #include "Logger.h"
 #include <bitset> 
+#include <queue> 
 
 using namespace omnetpp;
 
@@ -31,6 +32,7 @@ using namespace omnetpp;
  */
 struct NetworkParameters {
     int WS;    // Window Size
+    int SN;    // Seq Num
     double TO; // Timeout
     double PT; // Processing Time
     double TD; // Transmission Delay
@@ -43,6 +45,7 @@ struct NetworkParameters {
         NetworkParameters params;
         
         params.WS = parentModule->par("WS").intValue();
+        params.SN = parentModule->par("SN").intValue();
         params.TO = parentModule->par("TO").doubleValue();
         params.PT = parentModule->par("PT").doubleValue();
         params.TD = parentModule->par("TD").doubleValue();
@@ -69,10 +72,13 @@ class Node : public cSimpleModule
     NetworkParameters networkParams;
     bool isSenderNode = false; 
     // Sender related parameters
-    std::vector<std::string> lines;
+    std::queue<std::string> packets;
     int windowStart = 0;      // Start index of the window
     int windowEnd = 0;        // End index of the window
     int currentIndex = 0;     // Current index being processed within the window
+    int nbuffered = 0; // Number of packets buffered 
+    int ack_expected = 0;
+    std::vector<CustomMessage_Base *> buffer; 
     // CRC Error Detection 
     ErrorDetection * CRCModule ;
     // Receiver related parameters
@@ -97,6 +103,9 @@ class Node : public cSimpleModule
     void handleIncomingDataMessage(CustomMessage_Base *receivedMsg);
     bool shouldContinueReading(int rangeStart, int rangeEnd, int currentSeq);
     void processMessage(int);
+    // Timer Methods 
+    void startTimer(int);
+    void stopTimer(int);
     // Utility methods for message processing
     int extractNodeIndex();
     std::string generateInputFilePath(int nodeIndex);

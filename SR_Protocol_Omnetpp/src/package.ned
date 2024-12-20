@@ -8,6 +8,7 @@ network Network
 {
      parameters:
         int WS ;
+        int SN;
         double TO ;
         double PT ;
         double TD ;
