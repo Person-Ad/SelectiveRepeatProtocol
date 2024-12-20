@@ -133,7 +133,7 @@ class Node : public cSimpleModule
     
     // CRC and message validation methods
     bool validateMessageCRC(const std::string& payload, const std::string& trailer);
-    void handleCRCError();
+    void handleCRCError(CustomMessage_Base* receivedMsg);
     void processValidReceivedMessage(CustomMessage_Base *receivedMsg);
 
     // Window Functions 

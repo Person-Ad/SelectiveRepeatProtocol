@@ -154,7 +154,7 @@ void Node::handleIncomingDataMessage(CustomMessage_Base *receivedMsg)
     bool valid = validateMessageCRC(payload, trailer);
     
     if (!valid) {
-        handleCRCError();
+        handleCRCError(receivedMsg);
     } else {
         processValidReceivedMessage(receivedMsg);
     }
@@ -165,9 +165,15 @@ bool Node::validateMessageCRC(const std::string& payload, const std::string& tra
     return CRCModule->validateCRC(Utils::stringToBinaryStream(payload) + trailer);
 }
 
-void Node::handleCRCError() 
-{
-    std::cout << "Error occurred\n";
+void Node::handleCRCError(CustomMessage_Base* receivedMsg) 
+{   
+    // Send NACK only if in order
+    if(receivedMsg->getHeader() == frame_expected){
+        CustomMessage_Base* nackMessage = new CustomMessage_Base();
+        nackMessage->setFrameType(static_cast<int>(FrameType::NACK));
+        sendDelayed(nackMessage, networkParams.TD ,"dataGate$o");
+        Logger::logACK(simTime().dbl(), frame_expected , false, false);
+    }
 }
 
 void Node::processValidReceivedMessage(CustomMessage_Base* receivedMsg) 
@@ -187,7 +193,7 @@ void Node::processValidReceivedMessage(CustomMessage_Base* receivedMsg)
      ackMessage->setAckNackNumber(ackNo);
      ackMessage->setFrameType(static_cast<int>(FrameType::ACK));
      sendDelayed(ackMessage, networkParams.TD ,"dataGate$o");
-     Logger::logACK(simTime().dbl(), ackNo, false);
+     Logger::logACK(simTime().dbl(), ackNo, true, false);
 }
 
 void Node::sendDataMessage(int index){
@@ -251,14 +257,14 @@ void Node::processMessage(int index) {
     
     Frame * frame = parseFlags(errorNumber,stuffedMessage);
     
-    customMessage->setPayload(stuffedMessage.c_str());
-    customMessage->setName(customMessage->getPayload());
     char trailerChar = static_cast<char>(std::stoi(CRC, nullptr, 2));
     customMessage->setTrailer(trailerChar);
     customMessage->setHeader(index);
     
     // Modify message if needed 
-    modifyMessage(stuffedMessage, frame->modificationBit);
+    std::string modifiedMessage = modifyMessage(stuffedMessage, frame->modificationBit);
+    customMessage->setPayload(modifiedMessage.c_str());
+    customMessage->setName(customMessage->getPayload());
 
     // Set the frame type to 'SendTime'
     customMessage->setFrameType(static_cast<int>(FrameType::SendTime));

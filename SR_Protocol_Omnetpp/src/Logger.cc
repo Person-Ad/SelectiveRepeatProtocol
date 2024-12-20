@@ -51,14 +51,15 @@ void Logger::logChannelError(double time, const std::string& errorCode) {
 
 void Logger::logUpload(double time, const std::string& payload, int seqNum) {
     std::stringstream logMessage;
-    logMessage << "Uploading payload = [" << payload << "], Node[" << receiverIndex << "] and seq_num = [" 
+    logMessage << "Uploading payload = [" << payload << "] and seq_num = [" 
                << seqNum << "] to the network layer";
     log(logMessage.str());
 }
 
-void Logger::logACK(double time, int ackNum, bool loss) {
+void Logger::logACK(double time, int ackNum, bool isAck, bool loss) {
     std::stringstream logMessage;
-    logMessage << "At time [" << time << "], Node[" << senderIndex << "] Sending [ACK] with number [" 
+    logMessage << "At time [" << time << "], Node[" << receiverIndex << "] Sending [" 
+               << (isAck ? "ACK" : "NACK") << "] with number [" 
                << ackNum << "] ,loss [" << (loss ? "Yes" : "No") << "].";
     log(logMessage.str());
 }
