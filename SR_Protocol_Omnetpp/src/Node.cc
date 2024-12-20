@@ -61,6 +61,10 @@ void Node::handleMessage(cMessage *msg)
                 // Start Preparing 
                 processMessage(currentIndex);
                 break;
+            case FrameType::DuplicatedFrame:
+                // Start Preparing 
+                sendDuplicateMessage(receivedMsg);
+                break;
             default:
                 // Handle unknown or unhandled frame types
                 EV << "Received unknown frame type" << std::endl;
@@ -205,6 +209,10 @@ void Node::sendDataMessage(int index){
     std::string CRC = Utils::binaryStringFromChar(msgToSend->getTrailer());
     // Send the data message
     sendDelayed(msgToSend, networkParams.TD ,"dataGate$o");
+    // Check Duplicate 
+    if(frame->duplicate){
+        sendDelayed(msgToSend, networkParams.TD + networkParams.DD ,"dataGate$o");
+    }
     Logger::logFrameSent(simTime().dbl(), index, stuffedMessage, CRC, frame->modificationBit , frame->isLoss, frame->duplicate, frame->delay);
 }
 
@@ -299,8 +307,8 @@ Frame * Node::parseFlags(const std::string& errorNumber, const std::string messa
     int randomBit = int(uniform(0, message.size() * 8));
     newFrame->modificationBit = (errorNumber[0] == '1') ? randomBit : -1; // Assuming bit 0 is modified
     newFrame->isLoss = (errorNumber[1] == '1');
-    newFrame->duplicate = (errorNumber[2] == '1') ? 2 : 0;       // Assuming 2 duplicates for "1"
-    newFrame->delay = (errorNumber[3] == '1') ? 5 : 0;           // Assuming delay interval of 5 for "1"
+    newFrame->duplicate = (errorNumber[2] == '1') ? 1 : 0;      
+    newFrame->delay = (errorNumber[3] == '1') ? networkParams.DD : 0;           
 
     return newFrame;
 }
@@ -334,5 +342,20 @@ std::string Node::modifyMessage(const std::string& message, int errorBit) {
         erroredMessage.push_back(static_cast<char>(bits.to_ulong()));
     }
 
+    return erroredMessage;
+}
+
+void Node::duplicateMessage(CustomMessage_Base *receivedMsg, int duplicate) {
+    if(duplicate == 0){
+        return ; 
+    }
+    scheduleAt(simTime() + networkParams.PT + networkParams.DD, customMessage);
+    return erroredMessage;
+}
+
+void Node::sendDuplicateMessage(CustomMessage_Base *receivedMsg) {
+    receivedMsg->setFrameType(static_cast<int>(FrameType::Data));
+    scheduleAt(simTime() + networkParams.PT + networkParams.DD, receivedMsg);
+    Logger::logFrameSent(simTime().dbl(), index, stuffedMessage, CRC, false , false, 2, frame->delay);
     return erroredMessage;
 }

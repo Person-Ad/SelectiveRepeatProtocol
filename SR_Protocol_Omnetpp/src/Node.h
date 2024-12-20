@@ -46,7 +46,7 @@ struct NetworkParameters {
     double PT; // Processing Time
     double TD; // Transmission Delay
     double ED; // End Delay
-    double DD; // Drop Delay
+    double DD; // Duplication Delay
     double LP; // Loss Probability
 
     // Factory method to load parameters
@@ -73,6 +73,7 @@ enum class FrameType {
     Control = 3, // Control Frame from Coordinator
     SendTime = 4, // Means it's time to send schedule Processing Time finished
     PrepareTime=5, // Means it's time to process 
+    DuplicatedFrame = 6,
 };
 
 class Node : public cSimpleModule
