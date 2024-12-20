@@ -244,17 +244,22 @@ void Node::processMessage(int index) {
     std::string errorNumber = extractedMessage.first;  
     std::string message = extractedMessage.second;  
     // Parse Errors 
-    Frame * frame = parseFlags(errorNumber);
 
     // Stuff the message and compute CRC
     std::string stuffedMessage = Framing::stuff(message); 
     std::string CRC = CRCModule->computeCRC(Utils::stringToBinaryStream(stuffedMessage)); 
+    
+    Frame * frame = parseFlags(errorNumber,stuffedMessage);
+    
     customMessage->setPayload(stuffedMessage.c_str());
     customMessage->setName(customMessage->getPayload());
     char trailerChar = static_cast<char>(std::stoi(CRC, nullptr, 2));
     customMessage->setTrailer(trailerChar);
     customMessage->setHeader(index);
     
+    // Modify message if needed 
+    modifyMessage(stuffedMessage, frame->modificationBit);
+
     // Set the frame type to 'SendTime'
     customMessage->setFrameType(static_cast<int>(FrameType::SendTime));
     // Schedule the next message after the specified PT (Process Time)
@@ -278,17 +283,50 @@ void Node::to_network_layer(CustomMessage_Base *receivedMsg){
     std::string unstuffedMessage = Framing::unstuff(receivedMsg->getPayload());
     Logger::logUpload(simTime().dbl(), unstuffedMessage, receiverCurrentIndex);
 }
-Frame * Node::parseFlags(const std::string& prefix) {
-    if (prefix.size() != 4) {
-        throw std::invalid_argument("Invalid prefix length: " + prefix);
+Frame * Node::parseFlags(const std::string& errorNumber, const std::string message) {
+    if (errorNumber.size() != 4) {
+        throw std::invalid_argument("Invalid errorNumber length: " + errorNumber);
     }
     Frame* newFrame = new Frame();
 
-    // Parse the prefix and set the frame attributes
-    newFrame->modificationBit = (prefix[0] == '1') ? 0 : -1; // Assuming bit 0 is modified
-    newFrame->isLoss = (prefix[1] == '1');
-    newFrame->duplicate = (prefix[2] == '1') ? 2 : 0;       // Assuming 2 duplicates for "1"
-    newFrame->delay = (prefix[3] == '1') ? 5 : 0;           // Assuming delay interval of 5 for "1"
+    // Parse the errorNumber and set the frame attributes
+    int randomBit = int(uniform(0, message.size() * 8));
+    newFrame->modificationBit = (errorNumber[0] == '1') ? randomBit : -1; // Assuming bit 0 is modified
+    newFrame->isLoss = (errorNumber[1] == '1');
+    newFrame->duplicate = (errorNumber[2] == '1') ? 2 : 0;       // Assuming 2 duplicates for "1"
+    newFrame->delay = (errorNumber[3] == '1') ? 5 : 0;           // Assuming delay interval of 5 for "1"
 
     return newFrame;
+}
+
+std::string Node::modifyMessage(const std::string& message, int errorBit) {
+    if(errorBit < 0){
+        return message; 
+    }
+    if (message.empty()) {
+        throw std::invalid_argument("Message cannot be empty.");
+    }
+
+    int messageLength = message.size();
+    std::vector<std::bitset<8>> messageBitStream(messageLength);
+
+    // Convert each character to its bit representation
+    for (int i = 0; i < messageLength; ++i) {
+        messageBitStream[i] = std::bitset<8>(message[i]);
+    }
+
+    int errorChar = errorBit / 8;
+    int errorBitPos = errorBit % 8;
+
+    // Toggle the chosen bit
+    messageBitStream[errorChar][errorBitPos].flip();
+
+    // Reconstruct the message from the modified bit stream
+    std::string erroredMessage;
+    erroredMessage.reserve(messageLength); // Reserve memory to avoid reallocations
+    for (const auto& bits : messageBitStream) {
+        erroredMessage.push_back(static_cast<char>(bits.to_ulong()));
+    }
+
+    return erroredMessage;
 }

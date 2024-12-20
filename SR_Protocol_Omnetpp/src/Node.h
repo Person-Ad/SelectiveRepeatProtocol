@@ -141,8 +141,11 @@ class Node : public cSimpleModule
     void incrementWindowCircular(int & number);
 
     // Message Functions 
-    Frame * parseFlags(const std::string& prefix);
+    Frame * parseFlags(const std::string& errorNumber, const std::string message);
     // Logging 
+
+    // Errors 
+    std::string modifyMessage(const std::string& message, int errorBit);
 
 };
 

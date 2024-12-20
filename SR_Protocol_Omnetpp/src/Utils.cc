@@ -37,12 +37,12 @@ std::vector<std::string> Utils::readFileLines(const std::string& filePath) {
 
 std::pair<std::string, std::string> Utils::extractMessage(const std::string& input){
     std::istringstream stream(input);
-    int errorNumber;
+    std::string errorString ;
     std::string sentence;
 
     // Read the errorNumber first
-    stream >> errorNumber;
-
+    stream >> errorString;
+    
     // Get the rest of the string (after the first space)
     std::getline(stream, sentence);
     
@@ -50,7 +50,6 @@ std::pair<std::string, std::string> Utils::extractMessage(const std::string& inp
     if (!sentence.empty() && sentence[0] == ' ') {
         sentence = sentence.substr(1);
     }
-    std::string errorString = toBinary4Bits(errorNumber);
     return {errorString, sentence};
 }
 
