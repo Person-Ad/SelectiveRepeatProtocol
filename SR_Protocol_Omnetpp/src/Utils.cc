@@ -69,6 +69,10 @@ std::string Utils::toBinary4Bits(int number) {
     // Ensure the number fits in 4 bits and convert to binary using std::bitset
     return std::bitset<4>(number).to_string();
 }
+std::string Utils::binaryStringFromChar(char trailer) {
+    std::bitset<8> bits(static_cast<unsigned char>(trailer));
+    return bits.to_string();
+}
 Utils::~Utils() {
     // TODO Auto-generated destructor stub
 }

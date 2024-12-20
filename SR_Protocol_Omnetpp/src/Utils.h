@@ -19,6 +19,7 @@ public:
     static std::pair<int, std::string> extractMessage(const std::string& input);
     static std::string stringToBinaryStream(const std::string& input);
     static std::string toBinary4Bits(int number);
+    static std::string binaryStringFromChar(char trailer);
     virtual ~Utils();
 };
 

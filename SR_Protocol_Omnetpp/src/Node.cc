@@ -54,14 +54,14 @@ void Node::handleMessage(cMessage *msg)
                 case FrameType::SendTime:
                     // Send to Receiver
                     if(shouldContinueReading(windowStart,windowEnd,currentIndex)){
-                        sendDataMessage(currentIndex);
+                        sendDataMessage(currentIndex, receivedMsg);
                         incrementCircular(currentIndex);
-                        scheduleNextMessage();
+                        processMessage(currentIndex);
                     }
                     break;
                 case FrameType::PrepareTime:
                     // Start Preparing 
-                    scheduleNextMessage();
+                    processMessage(currentIndex);
                     break;
                 default:
                     // Handle unknown or unhandled frame types
@@ -171,10 +171,29 @@ void Node::processValidReceivedMessage(const std::string& payload)
 {
      std::string unstuffedMessage = Framing::unstuff(payload);
      Logger::logUpload(simTime().dbl(), unstuffedMessage, receiverCurrentIndex);
-
 }
 
-void Node::sendDataMessage(int index){
+void Node::sendDataMessage(int index, CustomMessage_Base * msgToSend){
+    // Extract relevant data from the message
+    std::string stuffedMessage = msgToSend->getPayload();
+    std::string CRC = Utils::binaryStringFromChar(msgToSend->getTrailer());
+    // Send the data message
+    sendDelayed(msgToSend, networkParams.TD ,"dataGate$o");
+    Logger::logFrameSent(simTime().dbl(), index, stuffedMessage, CRC, false, false, false, 0);
+}
+
+bool Node::shouldContinueReading(int rangeStart, int rangeEnd, int currentSeq) {
+    // Case 1: Non-wrapping range [rangeStart, rangeEnd)
+    if (rangeStart <= rangeEnd) {
+        return currentSeq >= rangeStart && currentSeq < rangeEnd;
+    }
+    // Case 2: Wrapping range, e.g., [rangeStart, rangeEnd) in circular buffers
+    return (currentSeq >= rangeStart || currentSeq < rangeEnd);
+}
+
+void Node::processMessage(int index) {
+    CustomMessage_Base* customMessage = new CustomMessage_Base();
+    
     // Extract first message from lines
     std::pair<int,std::string> extractedMessage = Utils::extractMessage(lines[index]); 
     int errorNumber = extractedMessage.first;  
@@ -183,36 +202,15 @@ void Node::sendDataMessage(int index){
     // Stuff the message and compute CRC
     std::string stuffedMessage = Framing::stuff(message); 
     std::string CRC = CRCModule->computeCRC(Utils::stringToBinaryStream(stuffedMessage)); 
- 
-    // Send the data message
-    CustomMessage_Base *customMessage = new CustomMessage_Base();
     customMessage->setPayload(stuffedMessage.c_str());
     customMessage->setName(customMessage->getPayload());
     char trailerChar = static_cast<char>(std::stoi(CRC, nullptr, 2));
     customMessage->setTrailer(trailerChar);
-    sendDelayed(customMessage, networkParams.TD ,"dataGate$o");
-    Logger::logChannelError(simTime().dbl(),Utils::toBinary4Bits(errorNumber));
-    Logger::logFrameSent(simTime().dbl(), index, stuffedMessage, CRC, false, false, false, 0);
-
-
-}
-
-bool Node::shouldContinueReading(int rangeStart, int rangeEnd, int currentSeq) {
-    // Case 1: Non-wrapping range [rangeStart, rangeEnd)
-    if (rangeStart <= rangeEnd) {
-        return currentSeq >= rangeStart && currentSeq < rangeEnd;
-    }
     
-    // Case 2: Wrapping range, e.g., [rangeStart, rangeEnd) in circular buffers
-    return (currentSeq >= rangeStart || currentSeq < rangeEnd);
-}
-
-void Node::scheduleNextMessage() {
-    CustomMessage_Base* nextMessage = new CustomMessage_Base();
-
     // Set the frame type to 'SendTime'
-    nextMessage->setFrameType(static_cast<int>(FrameType::SendTime));
-
-    // Schedule the next message after the specified PT (Propagation Time)
-    scheduleAt(simTime() + networkParams.PT, nextMessage);
+    customMessage->setFrameType(static_cast<int>(FrameType::SendTime));
+    // Schedule the next message after the specified PT (Process Time)
+    scheduleAt(simTime() + networkParams.PT, customMessage);
+    // Log 
+    Logger::logChannelError(simTime().dbl(),Utils::toBinary4Bits(errorNumber));
 }

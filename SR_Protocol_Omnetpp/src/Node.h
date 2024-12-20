@@ -83,7 +83,7 @@ class Node : public cSimpleModule
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
-    void sendDataMessage(int index);
+    void sendDataMessage(int, CustomMessage_Base *);
 
 
     // Message type detection methods
@@ -96,7 +96,7 @@ class Node : public cSimpleModule
     void handleNackResponse(CustomMessage_Base *receivedMsg);
     void handleIncomingDataMessage(CustomMessage_Base *receivedMsg);
     bool shouldContinueReading(int rangeStart, int rangeEnd, int currentSeq);
-    void scheduleNextMessage();
+    void processMessage(int);
     // Utility methods for message processing
     int extractNodeIndex();
     std::string generateInputFilePath(int nodeIndex);
