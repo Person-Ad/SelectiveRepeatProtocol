@@ -8,7 +8,13 @@
 
 #include "Logger.h"
 
-Logger::Logger(const std::string& logFilePath, int senderIndex) {
+// Static members initialization
+std::ofstream Logger::logFile;
+int Logger::senderIndex;
+int Logger::receiverIndex;
+std::mutex Logger::logFileMutex;
+
+void Logger::initialize(const std::string& logFilePath, int senderIndex) {
     // Open the log file in truncation mode to clear its contents
     logFile.open(logFilePath, std::ios::out | std::ios::trunc);  // Clears the content of the file
 
@@ -16,14 +22,14 @@ Logger::Logger(const std::string& logFilePath, int senderIndex) {
         std::cerr << "Error opening log file: " << logFilePath << std::endl;
     }
 
-    this->senderIndex = senderIndex;
-    this->receiverIndex = getReceiver(senderIndex);
+    Logger::senderIndex = senderIndex;
+    Logger::receiverIndex = getReceiver(senderIndex);
 }
 
 void Logger::logTime(double time, const std::string& message) {
     std::stringstream logMessage;
     logMessage << "At time [" << time << "], Node[" << senderIndex << "] , " << message;
-    logFile << logMessage.str() << std::endl;
+    log(logMessage.str());
 }
 
 void Logger::logFrameSent(double time, int seqNum, const std::string& payload, 
@@ -33,32 +39,38 @@ void Logger::logFrameSent(double time, int seqNum, const std::string& payload,
                << "] and payload=[" << payload << "] and trailer=[" << trailer << "] , Modified [" 
                << modified << "] , Lost [" << (lost ? "Yes" : "No") << "], Duplicate [" << duplicate 
                << "], Delay [" << delay << "].";
-    logFile << logMessage.str() << std::endl;
+    log(logMessage.str());
 }
 
 void Logger::logChannelError(double time, const std::string& errorCode) {
     std::stringstream logMessage;
     logMessage << "At time [" << time << "], Node[" << senderIndex << "] , Introducing channel error with code =[" 
                << errorCode << "] .";
-    logFile << logMessage.str() << std::endl;
+    log(logMessage.str());
 }
 
 void Logger::logUpload(double time, const std::string& payload, int seqNum) {
     std::stringstream logMessage;
-    logMessage << "Uploading payload = [" << payload << "], Node[" << senderIndex << "] and seq_num = [" 
+    logMessage << "Uploading payload = [" << payload << "], Node[" << receiverIndex << "] and seq_num = [" 
                << seqNum << "] to the network layer";
-    logFile << logMessage.str() << std::endl;
+    log(logMessage.str());
 }
 
 void Logger::logACK(double time, int ackNum, bool loss) {
     std::stringstream logMessage;
     logMessage << "At time [" << time << "], Node[" << senderIndex << "] Sending [ACK] with number [" 
                << ackNum << "] ,loss [" << (loss ? "Yes" : "No") << "].";
-    logFile << logMessage.str() << std::endl;
+    log(logMessage.str());
 }
 
-Logger::~Logger() {
-    // Close the log file when the logger object is destroyed
+void Logger::log(const std::string& message) {
+    // Lock the mutex to ensure thread-safe access to logFile
+    std::lock_guard<std::mutex> lock(logFileMutex);  
+    logFile << message << std::endl;
+}
+
+void Logger::cleanup() {
+    // Close the log file when done
     if (logFile.is_open()) {
         logFile.close();
     }

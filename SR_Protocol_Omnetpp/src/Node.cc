@@ -32,16 +32,43 @@ void Node::handleMessage(cMessage *msg)
     CustomMessage_Base *receivedMsg = check_and_cast<CustomMessage_Base *>(msg); 
     
     // Handle different message types based on frame type
-    int frameType = receivedMsg->getFrameType(); 
-    
-    if (isCoordinatorInitiationMessage(frameType)) {
+    FrameType frameType = static_cast<FrameType>(receivedMsg->getFrameType());
+
+    if (isCoordinatorInitiationMessage(receivedMsg->getFrameType())) {
         handleCoordinatorInitiation(receivedMsg);
     } else if (isSenderNode) {
          if (msg->isSelfMessage()){
-                if(shouldContinueReading(windowStart,windowEnd,currentIndex)){
-                    sendDataMessage(currentIndex);
-                    incrementCircular(currentIndex);
-                }
+             switch (frameType) {
+                case FrameType::NACK:
+                    // Handle NACK (Negative Acknowledgment)
+                    EV << "Received NACK message" << std::endl;
+                    // handleNack(receivedMsg);
+                    break;
+
+                case FrameType::ACK:
+                    // Handle ACK (Acknowledgment)
+                    EV << "Received ACK message" << std::endl;
+                    // handleAck(receivedMsg);
+                    break;
+
+                case FrameType::SendTime:
+                    // Send to Receiver
+                    if(shouldContinueReading(windowStart,windowEnd,currentIndex)){
+                        sendDataMessage(currentIndex);
+                        incrementCircular(currentIndex);
+                        scheduleNextMessage();
+                    }
+                    break;
+                case FrameType::PrepareTime:
+                    // Start Preparing 
+                    scheduleNextMessage();
+                    break;
+                default:
+                    // Handle unknown or unhandled frame types
+                    EV << "Received unknown frame type" << std::endl;
+                    break;
+            }
+      
          }else{
             handleAckNackResponse(receivedMsg);
          }
@@ -69,8 +96,9 @@ void Node::handleCoordinatorInitiation(CustomMessage_Base *receivedMsg)
     // Prepare and send first message
     int startTime = atoi(receivedMsg->getPayload());
     CustomMessage_Base *customMessage = new CustomMessage_Base();
+    customMessage->setFrameType(static_cast<int>(FrameType::PrepareTime));
     scheduleAt(simTime() + startTime, customMessage);
-    logger = new Logger("../text_files/output.txt",nodeIndex);
+    Logger::initialize("../text_files/output.txt",nodeIndex);
 }
 
 int Node::extractNodeIndex() 
@@ -95,9 +123,9 @@ void Node::handleAckNackResponse(CustomMessage_Base *receivedMsg)
     // Implement ACK/NACK handling logic
     // This method is currently empty in the original code
     // Add appropriate logic for handling sender node responses
-    if (static_cast<FrameType>(receivedMsg->getKind()) == FrameType::ACK) {
+    if (static_cast<FrameType>(receivedMsg->getFrameType()) == FrameType::ACK) {
         handleAckResponse(receivedMsg);
-    }else if (static_cast<FrameType>(receivedMsg->getKind()) == FrameType::NACK) {
+    }else if (static_cast<FrameType>(receivedMsg->getFrameType()) == FrameType::NACK) {
         handleNackResponse(receivedMsg);
     }
 
@@ -125,7 +153,7 @@ void Node::handleIncomingDataMessage(CustomMessage_Base *receivedMsg)
     if (!valid) {
         handleCRCError();
     } else {
-        processValidMessage(payload);
+        processValidReceivedMessage(payload);
     }
 }
 
@@ -139,10 +167,11 @@ void Node::handleCRCError()
     std::cout << "Error occurred\n";
 }
 
-void Node::processValidMessage(const std::string& payload) 
+void Node::processValidReceivedMessage(const std::string& payload) 
 {
-    std::string unstuffedMessage = Framing::unstuff(payload); 
-    EV << unstuffedMessage << "\n";
+     std::string unstuffedMessage = Framing::unstuff(payload);
+     Logger::logUpload(simTime().dbl(), unstuffedMessage, receiverCurrentIndex);
+
 }
 
 void Node::sendDataMessage(int index){
@@ -162,14 +191,10 @@ void Node::sendDataMessage(int index){
     char trailerChar = static_cast<char>(std::stoi(CRC, nullptr, 2));
     customMessage->setTrailer(trailerChar);
     sendDelayed(customMessage, networkParams.TD ,"dataGate$o");
-    logger->logChannelError(simTime().dbl(),Utils::toBinary4Bits(errorNumber));
-    logger->logFrameSent(simTime().dbl(), index, stuffedMessage, CRC, false, false, false, 0);
+    Logger::logChannelError(simTime().dbl(),Utils::toBinary4Bits(errorNumber));
+    Logger::logFrameSent(simTime().dbl(), index, stuffedMessage, CRC, false, false, false, 0);
 
-    // Schedule next message  
-    CustomMessage_Base * nextMessage = new CustomMessage_Base();
-    nextMessage->setPayload("Next Message Time");
-    nextMessage->setName(nextMessage->getPayload());
-    scheduleAt(simTime() + networkParams.PT, nextMessage);
+
 }
 
 bool Node::shouldContinueReading(int rangeStart, int rangeEnd, int currentSeq) {
@@ -180,4 +205,14 @@ bool Node::shouldContinueReading(int rangeStart, int rangeEnd, int currentSeq) {
     
     // Case 2: Wrapping range, e.g., [rangeStart, rangeEnd) in circular buffers
     return (currentSeq >= rangeStart || currentSeq < rangeEnd);
+}
+
+void Node::scheduleNextMessage() {
+    CustomMessage_Base* nextMessage = new CustomMessage_Base();
+
+    // Set the frame type to 'SendTime'
+    nextMessage->setFrameType(static_cast<int>(FrameType::SendTime));
+
+    // Schedule the next message after the specified PT (Propagation Time)
+    scheduleAt(simTime() + networkParams.PT, nextMessage);
 }

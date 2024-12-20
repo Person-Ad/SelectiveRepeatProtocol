@@ -59,6 +59,8 @@ enum class FrameType {
     ACK = 1,  // Acknowledgment
     Data = 2,  // Data Frame
     Control = 3, // Control Frame from Coordinator
+    SendTime = 4, // Means it's time to send schedule Processing Time finished
+    PrepareTime=5, // Means it's time to process 
 };
 
 class Node : public cSimpleModule
@@ -66,15 +68,17 @@ class Node : public cSimpleModule
   public:
     NetworkParameters networkParams;
     bool isSenderNode = false; 
-    Logger *  logger; 
     // Sender related parameters
     std::vector<std::string> lines;
-    int send_next_frame = 0; 
     int windowStart = 0;      // Start index of the window
     int windowEnd = 0;        // End index of the window
     int currentIndex = 0;     // Current index being processed within the window
     // CRC Error Detection 
     ErrorDetection * CRCModule ;
+    // Receiver related parameters
+    int receiverWindowStart = 0;      // Start index of the window
+    int receiverWindowEnd = 0;        // End index of the window
+    int receiverCurrentIndex = 0;     // Current index being processed within the window
 
   protected:
     virtual void initialize();
@@ -92,6 +96,7 @@ class Node : public cSimpleModule
     void handleNackResponse(CustomMessage_Base *receivedMsg);
     void handleIncomingDataMessage(CustomMessage_Base *receivedMsg);
     bool shouldContinueReading(int rangeStart, int rangeEnd, int currentSeq);
+    void scheduleNextMessage();
     // Utility methods for message processing
     int extractNodeIndex();
     std::string generateInputFilePath(int nodeIndex);
@@ -99,11 +104,13 @@ class Node : public cSimpleModule
     // CRC and message validation methods
     bool validateMessageCRC(const std::string& payload, const std::string& trailer);
     void handleCRCError();
-    void processValidMessage(const std::string& payload);
+    void processValidReceivedMessage(const std::string& payload);
 
     // Window Functions 
     void incrementCircular(int & number);
     void incrementWindowCircular(int & number);
+
+    // Logging 
 
 };
 
