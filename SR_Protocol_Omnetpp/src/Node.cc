@@ -24,8 +24,8 @@ void Node::initialize()
     CRCModule = new ErrorDetection("101");
     networkParams = NetworkParameters::loadFromModule(getParentModule());
     windowEnd = networkParams.WS - 1 ;
-    buffer = std::vector<CustomMessage_Base *>(networkParams.WS);
-    in_buffer = std::vector<CustomMessage_Base *>(networkParams.WS);
+    buffer = std::vector<CustomMessage_Base *>(networkParams.WS,nullptr);
+    in_buffer = std::vector<CustomMessage_Base *>(networkParams.WS,nullptr);
     too_far = networkParams.WS ;
 }
 
@@ -156,7 +156,7 @@ void Node::handleIncomingDataMessage(CustomMessage_Base *receivedMsg)
     if (!valid) {
         handleCRCError();
     } else {
-        processValidReceivedMessage(payload);
+        processValidReceivedMessage(receivedMsg);
     }
 }
 
@@ -170,8 +170,9 @@ void Node::handleCRCError()
     std::cout << "Error occurred\n";
 }
 
-void Node::processValidReceivedMessage(const std::string& payload) 
+void Node::processValidReceivedMessage(CustomMessage_Base* receivedMsg) 
 {
+    in_buffer[receivedMsg->getHeader() % networkParams.WS] = receivedMsg;
      // Send ACK to sender 
     while (in_buffer[frame_expected % networkParams.WS] != nullptr) {
         to_network_layer(in_buffer[frame_expected % networkParams.WS]);
@@ -180,12 +181,15 @@ void Node::processValidReceivedMessage(const std::string& payload)
         too_far = (too_far + 1) % (networkParams.SN + 1);
     }
      CustomMessage_Base* ackMessage = new CustomMessage_Base();
-     ackMessage->setAckNackNumber((frame_expected + networkParams.SN - 1) % (networkParams.SN + 1));
+     int ackNo = frame_expected;
+     ackMessage->setAckNackNumber(ackNo);
      ackMessage->setFrameType(static_cast<int>(FrameType::ACK));
      sendDelayed(ackMessage, networkParams.TD ,"dataGate$o");
+     Logger::logACK(simTime().dbl(), ackNo, false);
 }
 
 void Node::sendDataMessage(int index, CustomMessage_Base * msgToSend){
+    isProcessing = false;
     // Extract relevant data from the message
     std::string stuffedMessage = msgToSend->getPayload();
     std::string CRC = Utils::binaryStringFromChar(msgToSend->getTrailer());
@@ -219,6 +223,10 @@ bool Node::shouldContinueReading(int rangeStart, int rangeEnd, int currentSeq) {
 
 
 void Node::processMessage(int index) {
+    if(isProcessing){
+        return;
+    }
+    isProcessing = true;
     // It means I can't process more because the buffer is full or there is no more packets
     if(nbuffered >= networkParams.WS || packets.empty()){
         return ; 

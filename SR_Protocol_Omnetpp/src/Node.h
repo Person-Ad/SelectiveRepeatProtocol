@@ -89,6 +89,8 @@ class Node : public cSimpleModule
     int too_far = 0; 
     std::vector<CustomMessage_Base *> in_buffer;
 
+    bool isProcessing = false;
+
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
@@ -119,7 +121,7 @@ class Node : public cSimpleModule
     // CRC and message validation methods
     bool validateMessageCRC(const std::string& payload, const std::string& trailer);
     void handleCRCError();
-    void processValidReceivedMessage(const std::string& payload);
+    void processValidReceivedMessage(CustomMessage_Base *receivedMsg);
 
     // Window Functions 
     void incrementCircular(int & number);
