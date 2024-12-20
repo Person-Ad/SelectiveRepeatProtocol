@@ -65,6 +65,10 @@ std::string Utils::stringToBinaryStream(const std::string& input) {
 
     return binaryStream;
 }
+std::string Utils::toBinary4Bits(int number) {
+    // Ensure the number fits in 4 bits and convert to binary using std::bitset
+    return std::bitset<4>(number).to_string();
+}
 Utils::~Utils() {
     // TODO Auto-generated destructor stub
 }

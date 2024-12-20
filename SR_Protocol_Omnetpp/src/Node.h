@@ -54,6 +54,13 @@ struct NetworkParameters {
     }
 };
 
+enum class FrameType {
+    NACK = 0, // Negative Acknowledgment
+    ACK = 1,  // Acknowledgment
+    Data = 2,  // Data Frame
+    Control = 3, // Control Frame from Coordinator
+};
+
 class Node : public cSimpleModule
 {
   public:
@@ -63,7 +70,9 @@ class Node : public cSimpleModule
     // Sender related parameters
     std::vector<std::string> lines;
     int send_next_frame = 0; 
-
+    int windowStart = 0;      // Start index of the window
+    int windowEnd = 0;        // End index of the window
+    int currentIndex = 0;     // Current index being processed within the window
     // CRC Error Detection 
     ErrorDetection * CRCModule ;
 
@@ -79,8 +88,10 @@ class Node : public cSimpleModule
     // Message handling methods
     void handleCoordinatorInitiation(CustomMessage_Base *receivedMsg);
     void handleAckNackResponse(CustomMessage_Base *receivedMsg);
+    void handleAckResponse(CustomMessage_Base *receivedMsg);
+    void handleNackResponse(CustomMessage_Base *receivedMsg);
     void handleIncomingDataMessage(CustomMessage_Base *receivedMsg);
-
+    bool shouldContinueReading(int rangeStart, int rangeEnd, int currentSeq);
     // Utility methods for message processing
     int extractNodeIndex();
     std::string generateInputFilePath(int nodeIndex);
@@ -92,6 +103,7 @@ class Node : public cSimpleModule
 
     // Window Functions 
     void incrementCircular(int & number);
+    void incrementWindowCircular(int & number);
 
 };
 

@@ -8,12 +8,14 @@
 
 #include "Logger.h"
 
-Logger::Logger(const std::string& logFilePath,int senderIndex) {
-    // Open the log file in append mode
-    logFile.open(logFilePath, std::ios::app);
+Logger::Logger(const std::string& logFilePath, int senderIndex) {
+    // Open the log file in truncation mode to clear its contents
+    logFile.open(logFilePath, std::ios::out | std::ios::trunc);  // Clears the content of the file
+
     if (!logFile.is_open()) {
         std::cerr << "Error opening log file: " << logFilePath << std::endl;
     }
+
     this->senderIndex = senderIndex;
     this->receiverIndex = getReceiver(senderIndex);
 }

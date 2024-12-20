@@ -23,6 +23,7 @@ void Node::initialize()
 {
     CRCModule = new ErrorDetection("101");
     networkParams = NetworkParameters::loadFromModule(getParentModule());
+    windowEnd = networkParams.WS - 1 ;
 }
 
 void Node::handleMessage(cMessage *msg)
@@ -37,8 +38,10 @@ void Node::handleMessage(cMessage *msg)
         handleCoordinatorInitiation(receivedMsg);
     } else if (isSenderNode) {
          if (msg->isSelfMessage()){
-                sendDataMessage(send_next_frame);
-                incrementCircular(send_next_frame);
+                if(shouldContinueReading(windowStart,windowEnd,currentIndex)){
+                    sendDataMessage(currentIndex);
+                    incrementCircular(currentIndex);
+                }
          }else{
             handleAckNackResponse(receivedMsg);
          }
@@ -49,7 +52,7 @@ void Node::handleMessage(cMessage *msg)
 }
 bool Node::isCoordinatorInitiationMessage(int frameType) 
 {
-    return frameType == 3; // Coordinator start signal
+    return static_cast<FrameType>(frameType) == FrameType::Control; // Coordinator start signal
 }
 
 void Node::handleCoordinatorInitiation(CustomMessage_Base *receivedMsg) 
@@ -79,6 +82,9 @@ int Node::extractNodeIndex()
 void Node::incrementCircular(int & number){
     number = (number + 1)%networkParams.WS;
 }
+void Node::incrementWindowCircular(int & number){
+    number = (number + 1)%(networkParams.WS+1);
+}
 std::string Node::generateInputFilePath(int nodeIndex) 
 {
     return "../text_files/input" + std::to_string(nodeIndex) + ".txt";
@@ -89,6 +95,21 @@ void Node::handleAckNackResponse(CustomMessage_Base *receivedMsg)
     // Implement ACK/NACK handling logic
     // This method is currently empty in the original code
     // Add appropriate logic for handling sender node responses
+    if (static_cast<FrameType>(receivedMsg->getKind()) == FrameType::ACK) {
+        handleAckResponse(receivedMsg);
+    }else if (static_cast<FrameType>(receivedMsg->getKind()) == FrameType::NACK) {
+        handleNackResponse(receivedMsg);
+    }
+
+}
+void Node::handleAckResponse(CustomMessage_Base *receivedMsg)
+{
+    incrementWindowCircular(windowStart);
+    incrementWindowCircular(windowEnd);
+}
+void Node::handleNackResponse(CustomMessage_Base *receivedMsg)
+{
+
 }
 
 void Node::handleIncomingDataMessage(CustomMessage_Base *receivedMsg) 
@@ -120,7 +141,6 @@ void Node::handleCRCError()
 
 void Node::processValidMessage(const std::string& payload) 
 {
-    std::cout << "Valid !\n";
     std::string unstuffedMessage = Framing::unstuff(payload); 
     EV << unstuffedMessage << "\n";
 }
@@ -141,6 +161,23 @@ void Node::sendDataMessage(int index){
     customMessage->setName(customMessage->getPayload());
     char trailerChar = static_cast<char>(std::stoi(CRC, nullptr, 2));
     customMessage->setTrailer(trailerChar);
-    send(customMessage, "dataGate$o");
+    sendDelayed(customMessage, networkParams.TD ,"dataGate$o");
+    logger->logChannelError(simTime().dbl(),Utils::toBinary4Bits(errorNumber));
     logger->logFrameSent(simTime().dbl(), index, stuffedMessage, CRC, false, false, false, 0);
+
+    // Schedule next message  
+    CustomMessage_Base * nextMessage = new CustomMessage_Base();
+    nextMessage->setPayload("Next Message Time");
+    nextMessage->setName(nextMessage->getPayload());
+    scheduleAt(simTime() + networkParams.PT, nextMessage);
+}
+
+bool Node::shouldContinueReading(int rangeStart, int rangeEnd, int currentSeq) {
+    // Case 1: Non-wrapping range [rangeStart, rangeEnd)
+    if (rangeStart <= rangeEnd) {
+        return currentSeq >= rangeStart && currentSeq < rangeEnd;
+    }
+    
+    // Case 2: Wrapping range, e.g., [rangeStart, rangeEnd) in circular buffers
+    return (currentSeq >= rangeStart || currentSeq < rangeEnd);
 }
