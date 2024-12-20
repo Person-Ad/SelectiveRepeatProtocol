@@ -30,6 +30,15 @@ using namespace omnetpp;
 /**
  * TODO - Generated class
  */
+struct Frame {
+    bool isLoss = false;           // Indicates whether the frame is lost
+    int duplicate = 0;             // 0 for none, 1 for first version, 2 for second version
+    int delay = 0;                 // 0 for no delay, otherwise the delay interval
+    int modificationBit = -1;      // -1 for no modification, otherwise the modified bit number
+
+    CustomMessage_Base* message = nullptr; // Pointer to the actual message
+};
+
 struct NetworkParameters {
     int WS;    // Window Size
     int SN;    // Seq Num
@@ -78,7 +87,7 @@ class Node : public cSimpleModule
     int currentIndex = 0;     // Current index being processed within the window
     int nbuffered = 0; // Number of packets buffered 
     int ack_expected = 0;
-    std::vector<CustomMessage_Base *> buffer; 
+    std::vector<Frame *> buffer; 
     // CRC Error Detection 
     ErrorDetection * CRCModule ;
     // Receiver related parameters
@@ -87,14 +96,18 @@ class Node : public cSimpleModule
     int receiverCurrentIndex = 0;     // Current index being processed within the window
     int frame_expected = 0;
     int too_far = 0; 
-    std::vector<CustomMessage_Base *> in_buffer;
+    std::vector<Frame *> in_buffer;
 
     bool isProcessing = false;
-
+    
+    bool isModified = false;
+    bool isLoss = false;
+    bool isDuplicate = false;
+    bool isDelayed = false;
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
-    void sendDataMessage(int, CustomMessage_Base *);
+    void sendDataMessage(int);
 
 
     // Message type detection methods
@@ -127,6 +140,8 @@ class Node : public cSimpleModule
     void incrementCircular(int & number);
     void incrementWindowCircular(int & number);
 
+    // Message Functions 
+    Frame * parseFlags(const std::string& prefix);
     // Logging 
 
 };

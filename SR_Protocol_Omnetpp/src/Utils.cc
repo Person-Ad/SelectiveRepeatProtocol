@@ -35,7 +35,7 @@ std::vector<std::string> Utils::readFileLines(const std::string& filePath) {
     return lines;
 }
 
-std::pair<int, std::string> Utils::extractMessage(const std::string& input){
+std::pair<std::string, std::string> Utils::extractMessage(const std::string& input){
     std::istringstream stream(input);
     int errorNumber;
     std::string sentence;
@@ -50,8 +50,8 @@ std::pair<int, std::string> Utils::extractMessage(const std::string& input){
     if (!sentence.empty() && sentence[0] == ' ') {
         sentence = sentence.substr(1);
     }
-
-    return {errorNumber, sentence};
+    std::string errorString = toBinary4Bits(errorNumber);
+    return {errorString, sentence};
 }
 
 std::string Utils::stringToBinaryStream(const std::string& input) {

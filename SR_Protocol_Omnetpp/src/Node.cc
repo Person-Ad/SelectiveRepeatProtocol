@@ -24,8 +24,8 @@ void Node::initialize()
     CRCModule = new ErrorDetection("101");
     networkParams = NetworkParameters::loadFromModule(getParentModule());
     windowEnd = networkParams.WS - 1 ;
-    buffer = std::vector<CustomMessage_Base *>(networkParams.WS,nullptr);
-    in_buffer = std::vector<CustomMessage_Base *>(networkParams.WS,nullptr);
+    buffer = std::vector<Frame *>(networkParams.WS,nullptr);
+    in_buffer = std::vector<Frame *>(networkParams.WS,nullptr);
     too_far = networkParams.WS ;
 }
 
@@ -53,7 +53,7 @@ void Node::handleMessage(cMessage *msg)
 
             case FrameType::SendTime:
                 // Send to Receiver
-                sendDataMessage(currentIndex, receivedMsg);
+                sendDataMessage(currentIndex);
                 incrementCircular(currentIndex);
                 processMessage(currentIndex);
                 break;
@@ -172,10 +172,12 @@ void Node::handleCRCError()
 
 void Node::processValidReceivedMessage(CustomMessage_Base* receivedMsg) 
 {
-    in_buffer[receivedMsg->getHeader() % networkParams.WS] = receivedMsg;
+    Frame * frame = new Frame();
+    frame->message = receivedMsg;
+    in_buffer[receivedMsg->getHeader() % networkParams.WS] = frame;
      // Send ACK to sender 
     while (in_buffer[frame_expected % networkParams.WS] != nullptr) {
-        to_network_layer(in_buffer[frame_expected % networkParams.WS]);
+        to_network_layer(in_buffer[frame_expected % networkParams.WS]->message);
         in_buffer[frame_expected % networkParams.WS] = nullptr;
         frame_expected = (frame_expected + 1) % (networkParams.SN + 1);
         too_far = (too_far + 1) % (networkParams.SN + 1);
@@ -188,14 +190,16 @@ void Node::processValidReceivedMessage(CustomMessage_Base* receivedMsg)
      Logger::logACK(simTime().dbl(), ackNo, false);
 }
 
-void Node::sendDataMessage(int index, CustomMessage_Base * msgToSend){
+void Node::sendDataMessage(int index){
     isProcessing = false;
     // Extract relevant data from the message
+    Frame * frame = buffer[index];
+    CustomMessage_Base* msgToSend = frame->message;
     std::string stuffedMessage = msgToSend->getPayload();
     std::string CRC = Utils::binaryStringFromChar(msgToSend->getTrailer());
     // Send the data message
     sendDelayed(msgToSend, networkParams.TD ,"dataGate$o");
-    Logger::logFrameSent(simTime().dbl(), index, stuffedMessage, CRC, false, false, false, 0);
+    Logger::logFrameSent(simTime().dbl(), index, stuffedMessage, CRC, frame->modificationBit , frame->isLoss, frame->duplicate, frame->delay);
 }
 
 bool Node::shouldContinueReading(int rangeStart, int rangeEnd, int currentSeq) {
@@ -236,10 +240,12 @@ void Node::processMessage(int index) {
     // Extract first message from lines
     std::string nextLine = packets.front();
     packets.pop();
-    std::pair<int,std::string> extractedMessage = Utils::extractMessage(nextLine); 
-    int errorNumber = extractedMessage.first;  
+    std::pair<std::string,std::string> extractedMessage = Utils::extractMessage(nextLine); 
+    std::string errorNumber = extractedMessage.first;  
     std::string message = extractedMessage.second;  
-    
+    // Parse Errors 
+    Frame * frame = parseFlags(errorNumber);
+
     // Stuff the message and compute CRC
     std::string stuffedMessage = Framing::stuff(message); 
     std::string CRC = CRCModule->computeCRC(Utils::stringToBinaryStream(stuffedMessage)); 
@@ -255,9 +261,10 @@ void Node::processMessage(int index) {
     scheduleAt(simTime() + networkParams.PT, customMessage);
     
     // Adding the frame to buffer 
-    buffer[index % (networkParams.WS)] = customMessage;
+    frame->message = customMessage; 
+    buffer[index % (networkParams.WS)] = frame;
     // Log 
-    Logger::logChannelError(simTime().dbl(),Utils::toBinary4Bits(errorNumber));
+    Logger::logChannelError(simTime().dbl(),errorNumber);
 }
 
 void Node::startTimer(int x){
@@ -270,4 +277,18 @@ void Node::stopTimer(int x){
 void Node::to_network_layer(CustomMessage_Base *receivedMsg){
     std::string unstuffedMessage = Framing::unstuff(receivedMsg->getPayload());
     Logger::logUpload(simTime().dbl(), unstuffedMessage, receiverCurrentIndex);
+}
+Frame * Node::parseFlags(const std::string& prefix) {
+    if (prefix.size() != 4) {
+        throw std::invalid_argument("Invalid prefix length: " + prefix);
+    }
+    Frame* newFrame = new Frame();
+
+    // Parse the prefix and set the frame attributes
+    newFrame->modificationBit = (prefix[0] == '1') ? 0 : -1; // Assuming bit 0 is modified
+    newFrame->isLoss = (prefix[1] == '1');
+    newFrame->duplicate = (prefix[2] == '1') ? 2 : 0;       // Assuming 2 duplicates for "1"
+    newFrame->delay = (prefix[3] == '1') ? 5 : 0;           // Assuming delay interval of 5 for "1"
+
+    return newFrame;
 }
