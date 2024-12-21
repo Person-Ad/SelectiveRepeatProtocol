@@ -134,14 +134,9 @@ class Node : public cSimpleModule
     int extractNodeIndex();
     std::string generateInputFilePath(int nodeIndex);
     
-    // CRC and message validation methods
-    bool validateMessageCRC(const std::string& payload, const std::string& trailer);
-    void handleCRCError(CustomMessage_Base* receivedMsg);
-    void processValidReceivedMessage(CustomMessage_Base *receivedMsg);
-
+   
     // Window Functions 
     void incrementCircular(int & number);
-    void incrementWindowCircular(int & number);
 
     // Message Functions 
     Frame * parseFlags(const std::string& errorNumber, const std::string message);
@@ -154,7 +149,17 @@ class Node : public cSimpleModule
     std::vector<CustomMessage_Base *> timeoutMessages;
     void handleTimeout(CustomMessage_Base *msg);
     void sendTimeoutDataMessage(CustomMessage_Base *msg);
-    
+
+
+    // ---------------- Receiver ----------------
+    // CRC and message validation methods
+    bool validateMessageCRC(const std::string& payload, const std::string& trailer);
+    void handleCRCError(CustomMessage_Base* receivedMsg);
+    void processValidReceivedMessage(CustomMessage_Base *receivedMsg);
+    void sendAckMessage(CustomMessage_Base *msg);
+    void sendNackMessage(CustomMessage_Base *msg);
+
+
 };
 
 #endif

@@ -78,7 +78,21 @@ void Node::handleMessage(cMessage *msg)
                 break;
         }
     } else {
-        handleIncomingDataMessage(receivedMsg);
+        switch (frameType) {
+            case FrameType::NACK:
+                // Handle NACK (Negative Acknowledgment)
+                sendNackMessage(receivedMsg);
+                break;
+            case FrameType::ACK:
+                // Handle ACK (Acknowledgment)
+                sendAckMessage(receivedMsg);
+                break;
+            default:
+                // Handle it as Data
+                handleIncomingDataMessage(receivedMsg);
+                break;
+        }
+       
     }
 
 }
@@ -115,11 +129,9 @@ int Node::extractNodeIndex()
 }
 
 void Node::incrementCircular(int & number){
-    number = (number + 1)%networkParams.WS;
+   number = (number + 1)%(networkParams.SN+1);
 }
-void Node::incrementWindowCircular(int & number){
-    number = (number + 1)%(networkParams.SN+1);
-}
+
 std::string Node::generateInputFilePath(int nodeIndex) 
 {
     return "../text_files/input" + std::to_string(nodeIndex) + ".txt";
@@ -144,7 +156,7 @@ void Node::handleAckResponse(CustomMessage_Base *receivedMsg)
         while (ack_expected != ackNo) {
             stopTimer(ack_expected); // Stop timers for acknowledged frames
             nbuffered--;
-            ack_expected = (ack_expected + 1) % (networkParams.SN + 1); // Slide window
+            incrementCircular(ack_expected); // Slide window
         }
     }
     processMessage(currentIndex);
@@ -155,66 +167,10 @@ void Node::handleNackResponse(CustomMessage_Base *receivedMsg)
     stopTimer(receivedMsg->getHeader());
 }
 
-void Node::handleIncomingDataMessage(CustomMessage_Base *receivedMsg) 
-{
-    //TODO: Add Handling Lost ACK 
-    double random = uniform(0, 1);
-    bool lostACK = random < networkParams.LP ? true : false;
-    // Extract message details
-    std::string payload = receivedMsg->getPayload(); 
-    char trailerChar = receivedMsg->getTrailer(); 
-    std::string trailer = std::bitset<8>(trailerChar).to_string(); 
- 
-    // Validate CRC
-    bool valid = validateMessageCRC(payload, trailer);
-    
-    if (!valid) {
-        handleCRCError(receivedMsg);
-    } else {
-        processValidReceivedMessage(receivedMsg);
-    }
-}
-
-bool Node::validateMessageCRC(const std::string& payload, const std::string& trailer) 
-{
-    return CRCModule->validateCRC(Utils::stringToBinaryStream(payload) + trailer);
-}
-
-void Node::handleCRCError(CustomMessage_Base* receivedMsg) 
-{   
-    // Send NACK only if in order
-    if(receivedMsg->getHeader() == frame_expected){
-        CustomMessage_Base* nackMessage = new CustomMessage_Base();
-        nackMessage->setFrameType(static_cast<int>(FrameType::NACK));
-        sendDelayed(nackMessage, networkParams.TD ,"dataGate$o");
-        Logger::logACK(simTime().dbl(), frame_expected , false, false);
-    }
-}
-
-void Node::processValidReceivedMessage(CustomMessage_Base* receivedMsg) 
-{
-    Frame * frame = new Frame();
-    frame->message = receivedMsg;
-    in_buffer[receivedMsg->getHeader() % networkParams.WS] = frame;
-     // Send ACK to sender 
-    while (in_buffer[frame_expected % networkParams.WS] != nullptr) {
-        to_network_layer(in_buffer[frame_expected % networkParams.WS]->message);
-        in_buffer[frame_expected % networkParams.WS] = nullptr;
-        frame_expected = (frame_expected + 1) % (networkParams.SN + 1);
-        too_far = (too_far + 1) % (networkParams.SN + 1);
-    }
-     CustomMessage_Base* ackMessage = new CustomMessage_Base();
-     int ackNo = frame_expected;
-     ackMessage->setAckNackNumber(ackNo);
-     ackMessage->setFrameType(static_cast<int>(FrameType::ACK));
-     sendDelayed(ackMessage, networkParams.TD ,"dataGate$o");
-     Logger::logACK(simTime().dbl(), ackNo, true, false);
-}
-
 void Node::sendDataMessage(int index){
     isProcessing = false;
     // Extract relevant data from the message
-    Frame * frame = buffer[index];
+    Frame * frame = buffer[index % (networkParams.WS)];
     CustomMessage_Base* msgToSend = frame->message;
     std::string stuffedMessage = msgToSend->getPayload();
     std::string CRC = Utils::binaryStringFromChar(msgToSend->getTrailer());
@@ -403,4 +359,75 @@ std::string Node::modifyMessage(const std::string& message, int errorBit) {
     }
 
     return erroredMessage;
+}
+
+// -------------------------- Receiver --------------------------------------------------- 
+
+void Node::handleIncomingDataMessage(CustomMessage_Base *receivedMsg) 
+{
+    //TODO: Add Handling Lost ACK 
+    double random = uniform(0, 1);
+    bool lostACK = random < networkParams.LP ? true : false;
+    // Extract message details
+    std::string payload = receivedMsg->getPayload(); 
+    char trailerChar = receivedMsg->getTrailer(); 
+    std::string trailer = std::bitset<8>(trailerChar).to_string(); 
+ 
+    // Validate CRC
+    bool valid = validateMessageCRC(payload, trailer);
+    
+    if (!valid) {
+        handleCRCError(receivedMsg);
+    } else {
+        processValidReceivedMessage(receivedMsg);
+    }
+}
+
+bool Node::validateMessageCRC(const std::string& payload, const std::string& trailer) 
+{
+    return CRCModule->validateCRC(Utils::stringToBinaryStream(payload) + trailer);
+}
+
+void Node::handleCRCError(CustomMessage_Base* receivedMsg) 
+{   
+    // Send NACK only if in order
+    if(receivedMsg->getHeader() == frame_expected){
+        CustomMessage_Base* nackMessage = new CustomMessage_Base();
+        nackMessage->setFrameType(static_cast<int>(FrameType::NACK));
+        scheduleAt(simTime() + networkParams.PT, nackMessage);
+    }
+}
+
+void Node::processValidReceivedMessage(CustomMessage_Base* receivedMsg) 
+{
+    Frame * frame = new Frame();
+    frame->message = receivedMsg;
+    in_buffer[receivedMsg->getHeader() % networkParams.WS] = frame;
+     // Send ACK to sender 
+    while (in_buffer[frame_expected % networkParams.WS] != nullptr) {
+        to_network_layer(in_buffer[frame_expected % networkParams.WS]->message);
+        in_buffer[frame_expected % networkParams.WS] = nullptr;
+        incrementCircular(frame_expected);
+        incrementCircular(too_far);
+    }
+     CustomMessage_Base* ackMessage = new CustomMessage_Base();
+     int ackNo = frame_expected;
+     ackMessage->setAckNackNumber(ackNo);
+     ackMessage->setFrameType(static_cast<int>(FrameType::ACK));
+     scheduleAt(simTime() + networkParams.PT, ackMessage);
+}
+
+
+void Node::sendAckMessage(CustomMessage_Base *msg){    
+    msg->setFrameType(static_cast<int>(FrameType::ACK));
+    // Send the data message
+    sendDelayed(msg, networkParams.TD ,"dataGate$o");
+    Logger::logACK(simTime().dbl(), msg->getAckNackNumber(), true, false);
+}
+
+void Node::sendNackMessage(CustomMessage_Base *msg){    
+    msg->setFrameType(static_cast<int>(FrameType::NACK));
+    // Send the data message
+    sendDelayed(msg, networkParams.TD ,"dataGate$o");
+    Logger::logACK(simTime().dbl(), msg->getAckNackNumber(), false, false);
 }
