@@ -226,11 +226,11 @@ void Node::processMessage(int index) {
     if(isProcessing){
         return;
     }
-    isProcessing = true;
     // It means I can't process more because the buffer is full or there is no more packets
     if(nbuffered >= networkParams.WS || packets.empty()){
         return ; 
     }
+    isProcessing = true;
     
     nbuffered++;
 
@@ -350,9 +350,9 @@ void Node::handleIncomingDataMessage(CustomMessage_Base *receivedMsg)
 {
     // Checking if the received sequence number is in the range 
     int seqNo = static_cast<int>(receivedMsg->getHeader());
-    // if(!Utils::between(frame_expected, seqNo, too_far)){
-    //     return; 
-    // }
+    if(!Utils::isSeqNoInRecvWindow(frame_expected, seqNo, too_far)){
+        return; 
+    }
     //TODO: Add Handling Lost ACK 
     double random = uniform(0, 1);
     bool lostACK = random < networkParams.LP ? true : false;

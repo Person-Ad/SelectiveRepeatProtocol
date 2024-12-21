@@ -20,6 +20,7 @@ public:
     static std::string stringToBinaryStream(const std::string& input);
     static std::string toBinary4Bits(int number);
     static std::string binaryStringFromChar(char trailer);
+    static bool isSeqNoInRecvWindow(int frame_expected, int seqNo, int too_far);
     static bool between(int a, int b, int c) ;
     virtual ~Utils();
 };

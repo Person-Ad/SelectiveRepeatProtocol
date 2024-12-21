@@ -80,6 +80,17 @@ bool Utils::between(int a, int b, int c) {
     // Case 2: Wrap-around case
     return a <= b || b < c;
 }
+
+bool Utils::isSeqNoInRecvWindow(int frame_expected, int seqNo, int too_far) {
+    // Case 1: No wraparound, linear range check
+    if (frame_expected < too_far) {
+        return frame_expected <= seqNo && seqNo < too_far;
+    }
+    
+    // Case 2: Wraparound, split into two parts
+    return frame_expected <= seqNo || seqNo < too_far;
+}
+
 Utils::~Utils() {
     // TODO Auto-generated destructor stub
 }
