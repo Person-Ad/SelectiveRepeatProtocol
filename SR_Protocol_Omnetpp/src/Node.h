@@ -100,7 +100,7 @@ class Node : public cSimpleModule
     int frame_expected = 0;
     int too_far = 0; 
     std::vector<Frame *> in_buffer;
-
+    std::vector<bool> sentNack; 
     bool isProcessing = false;
     
     bool isModified = false;

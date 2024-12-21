@@ -26,6 +26,7 @@ void Node::initialize()
     windowEnd = networkParams.WS - 1 ;
     buffer = std::vector<Frame *>(networkParams.WS,nullptr);
     in_buffer = std::vector<Frame *>(networkParams.WS,nullptr);
+    sentNack = std::vector<bool>(networkParams.WS,false);
     timeoutMessages = std::vector<CustomMessage_Base *>(networkParams.WS,nullptr);
     too_far = networkParams.WS ;
 }
@@ -134,17 +135,33 @@ void Node::incrementCircular(int & number){
 
 std::string Node::generateInputFilePath(int nodeIndex) 
 {
+    // nodeIndex = 7; 
     return "../text_files/input" + std::to_string(nodeIndex) + ".txt";
 }
 
 void Node::handleAckResponse(CustomMessage_Base *receivedMsg)
 {
     int ackNo = receivedMsg->getAckNackNumber();
-    if (ackNo >= ack_expected && ackNo < next_frame_to_send) {
-        while (ack_expected != ackNo) {
-            stopTimer(ack_expected); // Stop timers for acknowledged frames
+    EV << "Received ACK: " << ackNo << ", Expected ACK: " << ack_expected
+    << ", Next Frame to Send: " << next_frame_to_send << "\n";
+    if (ack_expected <= ackNo && ackNo < next_frame_to_send) {
+        // Normal case - no wrap around
+        while (ack_expected <= ackNo) {
+            stopTimer(ack_expected);
             nbuffered--;
-            incrementCircular(ack_expected); // Slide window
+            incrementCircular(ack_expected);
+        }
+    } else if (ack_expected > next_frame_to_send) {
+        // Wrap around case
+        while (ack_expected <= networkParams.SN) {
+            stopTimer(ack_expected);
+            nbuffered--;
+            incrementCircular(ack_expected);
+        }
+        while (ack_expected <= ackNo) {
+            stopTimer(ack_expected);
+            nbuffered--;
+            incrementCircular(ack_expected);
         }
     }
     processMessage(next_frame_to_send);
@@ -152,12 +169,11 @@ void Node::handleAckResponse(CustomMessage_Base *receivedMsg)
 void Node::handleNackResponse(CustomMessage_Base *receivedMsg)
 {
     //TODO: Add here logic to stop the processing packet by adding a boolean after the PT to schedule another PT and resend the corrupted packet
-    int seqNo = static_cast<int>(receivedMsg->getHeader());
+    int seqNo = static_cast<int>(receivedMsg->getAckNackNumber());
     stopTimer(seqNo);
     Frame * frame = buffer[seqNo % (networkParams.WS)];
     CustomMessage_Base * cleanMessage = frame->message->dup(); 
     cleanMessage->setFrameType(static_cast<int>(FrameType::SendDataTimeout));
-    EV<<"NACK "<<seqNo<<" "<<cleanMessage->getPayload()<<"\n";
     scheduleAt(simTime() + networkParams.PT + 0.001, cleanMessage);
 }
 
@@ -362,7 +378,8 @@ void Node::handleCRCError(CustomMessage_Base* receivedMsg)
 {   
     // Send NACK only if in order
     int seqNo = static_cast<int>(receivedMsg->getHeader());
-    if(seqNo == frame_expected){
+    if(seqNo == frame_expected && !sentNack[seqNo]){
+        sentNack[seqNo] = true;
         CustomMessage_Base* nackMessage = new CustomMessage_Base();
         nackMessage->setFrameType(static_cast<int>(FrameType::NACK));
         scheduleAt(simTime() + networkParams.PT, nackMessage);
@@ -375,6 +392,10 @@ void Node::processValidReceivedMessage(CustomMessage_Base* receivedMsg)
     frame->message = receivedMsg;
     int seqNo = static_cast<int>(receivedMsg->getHeader());
     in_buffer[seqNo % networkParams.WS] = frame;
+    // Rest SentNack boolean when valid message is received 
+    sentNack[seqNo % networkParams.WS] = false;
+
+    bool shouldSendNack = true; 
      // Send ACK to sender 
     bool sendAck = false; 
     while (in_buffer[frame_expected % networkParams.WS] != nullptr) {
@@ -384,11 +405,17 @@ void Node::processValidReceivedMessage(CustomMessage_Base* receivedMsg)
         incrementCircular(frame_expected);
         incrementCircular(too_far);
         sendAck = true; 
+        shouldSendNack = false;
     }
      CustomMessage_Base* ackMessage = new CustomMessage_Base();
      int ackNo = frame_expected;
      ackMessage->setAckNackNumber(ackNo);
-     ackMessage->setFrameType(static_cast<int>(FrameType::ACK));
+     if(shouldSendNack && !sentNack[ackNo % networkParams.WS]){
+        sentNack[ackNo % networkParams.WS] = true; 
+        ackMessage->setFrameType(static_cast<int>(FrameType::NACK));
+     }else{
+        ackMessage->setFrameType(static_cast<int>(FrameType::ACK));
+     }
      scheduleAt(simTime() + networkParams.PT, ackMessage);
 }
 

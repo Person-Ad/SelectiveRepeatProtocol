@@ -8,6 +8,16 @@ At time [1.5], Node[0] [sent] frame with seq_num=[2] and payload=[$is the reprod
 At time [1.5], Node[0] , Introducing channel error with code =[0000] .
 At time [2], Node[1] Sending [NACK] with number [0] ,loss [No].
 At time [2], Node[0] [sent] frame with seq_num=[3] and payload=[$(plants of the division Magnoliophyta,  is to facilitate reproduction,$] and trailer=[00000001] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
-At time [2.1], Node[1] Sending [NACK] with number [0] ,loss [No].
 At time [2.5], Node[1] Sending [ACK] with number [0] ,loss [No].
 At time [3.5], Node[1] Sending [ACK] with number [0] ,loss [No].
+At time [3.501], Node[0] [sent] frame with seq_num=[0] and payload=[$A flower, sometimes $] and trailer=[00000011] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
+Uploading payload = [A flower, sometimes ] and seq_num = [0] to the network layer
+Uploading payload = [known as a bloom or blossom in flowering plants] and seq_num = [0] to the network layer
+At time [5.001], Node[1] Sending [ACK] with number [2] ,loss [No].
+Timeout event at time [12], at Node[0] for frame with seq_num=[3]
+At time [12.501], Node[0] [sent] frame with seq_num=[3] and payload=[$(plants of the division Magnoliophyta,  is to facilitate reproduction,$] and trailer=[00000001] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
+At time [14.001], Node[1] Sending [NACK] with number [2] ,loss [No].
+At time [15.502], Node[0] [sent] frame with seq_num=[2] and payload=[$is the reproductive/$ structure found  also called// angiosperms/$).$] and trailer=[00000001] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
+Uploading payload = [is the reproductive$ structure found  also called/ angiosperms$).] and seq_num = [0] to the network layer
+Uploading payload = [(plants of the division Magnoliophyta,  is to facilitate reproduction,] and seq_num = [0] to the network layer
+At time [17.002], Node[1] Sending [ACK] with number [4] ,loss [No].
