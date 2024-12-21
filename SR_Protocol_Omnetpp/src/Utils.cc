@@ -73,7 +73,12 @@ std::string Utils::binaryStringFromChar(char trailer) {
     return bits.to_string();
 }
 bool Utils::between(int a, int b, int c) {
-    return ((a <= b && b < c) || (c < a && a <= b) || (b < c && c < a));
+    // Case 1: No wrap-around, linear check
+    if (a <= c) {
+        return a <= b && b < c;
+    }
+    // Case 2: Wrap-around case
+    return a <= b || b < c;
 }
 Utils::~Utils() {
     // TODO Auto-generated destructor stub

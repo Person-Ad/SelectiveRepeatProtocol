@@ -145,7 +145,8 @@ void Node::handleAckResponse(CustomMessage_Base *receivedMsg)
     int ackNo = receivedMsg->getAckNackNumber();
     EV << "Received ACK: " << ackNo << ", Expected ACK: " << ack_expected
     << ", Next Frame to Send: " << next_frame_to_send << "\n";
-    if (ackNo >= ack_expected && ackNo < next_frame_to_send) {
+    // Circular check for ACK within the sliding window
+    if (Utils::between(ack_expected, ackNo, next_frame_to_send)) {
         while (ack_expected != ackNo) {
             stopTimer(ack_expected); // Stop timers for acknowledged frames
             nbuffered--;
@@ -167,6 +168,7 @@ void Node::handleNackResponse(CustomMessage_Base *receivedMsg)
 }
 
 void Node::sendDataMessage(int index){
+    EV << "Sending Data Message Index :   " << index<<"\n";
     isProcessing = false;
     // Extract relevant data from the message
     Frame * frame = buffer[index % (networkParams.WS)];
@@ -218,7 +220,7 @@ void Node::sendTimeoutDataMessage(CustomMessage_Base *msg){
 
 void Node::processMessage(int index) {
     EV << "isProcessing: " << isProcessing << ", nbuffered: " << nbuffered 
-    << ", WS: " << networkParams.WS << ", packets: " << packets.size() << "\n";
+    << ", Index: " << index << ", packets: " << packets.size() << "\n";
     if(isProcessing){
         return;
     }
@@ -342,6 +344,11 @@ std::string Node::modifyMessage(const std::string& message, int errorBit) {
 
 void Node::handleIncomingDataMessage(CustomMessage_Base *receivedMsg) 
 {
+    // Checking if the received sequence number is in the range 
+    int seqNo = static_cast<int>(receivedMsg->getHeader());
+    // if(!Utils::between(frame_expected, seqNo, too_far)){
+    //     return; 
+    // }
     //TODO: Add Handling Lost ACK 
     double random = uniform(0, 1);
     bool lostACK = random < networkParams.LP ? true : false;
@@ -369,10 +376,12 @@ void Node::handleCRCError(CustomMessage_Base* receivedMsg)
 {   
     // Send NACK only if in order
     int seqNo = static_cast<int>(receivedMsg->getHeader());
+     EV<<"Invalid CRC Seq No : "<<seqNo<<"  Expected Frame: "<<frame_expected<<"\n";
     if(seqNo == frame_expected && !sentNack[seqNo]){
         sentNack[seqNo] = true;
         CustomMessage_Base* nackMessage = new CustomMessage_Base();
         nackMessage->setFrameType(static_cast<int>(FrameType::NACK));
+        nackMessage->setAckNackNumber(seqNo);
         scheduleAt(simTime() + networkParams.PT, nackMessage);
     }
 }
@@ -385,7 +394,7 @@ void Node::processValidReceivedMessage(CustomMessage_Base* receivedMsg)
     in_buffer[seqNo % networkParams.WS] = frame;
     // Rest SentNack boolean when valid message is received 
     sentNack[seqNo % networkParams.WS] = false;
-
+    EV<<"Received Seq No : "<<seqNo<<"  Expected Frame: "<<frame_expected<<"\n";
     bool shouldSendNack = true; 
      // Send ACK to sender 
     bool sendAck = false; 
@@ -426,6 +435,7 @@ void Node::sendNackMessage(CustomMessage_Base *msg){
 }
 
 void Node::to_network_layer(CustomMessage_Base *receivedMsg){
+    int seqNo = static_cast<int>(receivedMsg->getHeader());
     std::string unstuffedMessage = Framing::unstuff(receivedMsg->getPayload());
-    Logger::logUpload(simTime().dbl(), unstuffedMessage, receiverCurrentIndex);
+    Logger::logUpload(simTime().dbl(), unstuffedMessage, seqNo);
 }
