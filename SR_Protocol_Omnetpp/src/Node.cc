@@ -18,7 +18,7 @@
 
 
 Define_Module(Node);
-std::string x = "3";
+std::string x = "5";
 
 void Node::initialize()
 {

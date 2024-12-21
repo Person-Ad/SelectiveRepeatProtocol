@@ -11,7 +11,7 @@ At time [1.5], Node[0] , Introducing channel error with code =[1010] .
 Uploading payload = [is a natural light display in Earth's sky,] and seq_num = [1] to the network layer
 At time [2], Node[1] Sending [ACK] with number [1] ,loss [No].
 At time [2], Node[0] [sent] frame with seq_num=[3] and payload=[$(around the Arctic// ánd Antarctic).$] and trailer=[00000011] , Modified [183] , Lost [No], Duplicate [1], Delay [0].
-At time [2.1], Node[0] [sent] frame with seq_num=[3] and payload=[$(around the Arctic// and Antarctic).$] and trailer=[00000011] , Modified [183] , Lost [No], Duplicate [2], Delay [0].
+At time [2.1], Node[0] [sent] frame with seq_num=[3] and payload=[$(around the Arctic// ánd Antarctic).$] and trailer=[00000011] , Modified [183] , Lost [No], Duplicate [2], Delay [0].
 Uploading payload = [predominantly seen in high-latitude regions] and seq_num = [2] to the network layer
 At time [2.5], Node[1] Sending [ACK] with number [2] ,loss [No].
 At time [3], Node[0] , Introducing channel error with code =[0000] .
