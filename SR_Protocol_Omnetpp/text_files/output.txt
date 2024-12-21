@@ -15,37 +15,37 @@ Uploading payload = [A flower, sometimes ] and seq_num = [0] to the network laye
 Uploading payload = [known as a bloom or blossom in flowering plants] and seq_num = [1] to the network layer
 At time [5.001], Node[1] Sending [ACK] with number [2] ,loss [No].
 At time [6.001], Node[0] , Introducing channel error with code =[0001] .
-At time [6.501], Node[0] [sent] frame with seq_num=[4] and payload=[$The biological function of /$//a flower  $] and trailer=[00000011] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
+At time [6.501], Node[0] [sent] frame with seq_num=[4] and payload=[$The biological function of /$//a flower  $] and trailer=[00000011] , Modified [-1] , Lost [No], Duplicate [0], Delay [4].
 At time [6.501], Node[0] , Introducing channel error with code =[0100] .
 At time [7.001], Node[0] [sent] frame with seq_num=[5] and payload=[$usually by providing a mechanism for Flowers may facilitate outcrossing/$$] and trailer=[00000010] , Modified [-1] , Lost [Yes], Duplicate [0], Delay [0].
-At time [8.001], Node[1] Sending [NACK] with number [2] ,loss [No].
-At time [9.502], Node[0] [sent] frame with seq_num=[2] and payload=[$is the reproductive/$ structure found  also called// angiosperms/$).$] and trailer=[00000001] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
-Uploading payload = [is the reproductive$ structure found  also called/ angiosperms$).] and seq_num = [2] to the network layer
-Uploading payload = [(plants of the division Magnoliophyta,  is to facilitate reproduction,] and seq_num = [3] to the network layer
-Uploading payload = [The biological function of $/a flower  ] and seq_num = [4] to the network layer
-At time [11.002], Node[1] Sending [ACK] with number [5] ,loss [No].
 Timeout event at time [11.5], at Node[0] for frame with seq_num=[2]
 Timeout event at time [12], at Node[0] for frame with seq_num=[3]
 At time [12.001], Node[0] [sent] frame with seq_num=[2] and payload=[$is the reproductive/$ structure found  also called// angiosperms/$).$] and trailer=[00000001] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
-At time [12.002], Node[0] , Introducing channel error with code =[0000] .
+At time [12.001], Node[1] Sending [NACK] with number [2] ,loss [No].
 At time [12.501], Node[0] [sent] frame with seq_num=[3] and payload=[$(plants of the division Magnoliophyta,  is to facilitate reproduction,$] and trailer=[00000001] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
-At time [12.502], Node[0] [sent] frame with seq_num=[6] and payload=[$/$/$the union of sperm with eggs.$] and trailer=[00000011] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
-At time [13.501], Node[1] Sending [NACK] with number [5] ,loss [No].
-At time [14.001], Node[1] Sending [ACK] with number [5] ,loss [No].
-At time [14.002], Node[1] Sending [ACK] with number [5] ,loss [No].
-At time [15.002], Node[0] [sent] frame with seq_num=[5] and payload=[$usually by providing a mechanism for Flowers may facilitate outcrossing/$$] and trailer=[00000010] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
+Uploading payload = [is the reproductive$ structure found  also called/ angiosperms$).] and seq_num = [2] to the network layer
+Uploading payload = [(plants of the division Magnoliophyta,  is to facilitate reproduction,] and seq_num = [3] to the network layer
+Uploading payload = [The biological function of $/a flower  ] and seq_num = [4] to the network layer
+At time [13.501], Node[1] Sending [ACK] with number [5] ,loss [No].
+At time [13.502], Node[0] [sent] frame with seq_num=[2] and payload=[$is the reproductive/$ structure found  also called// angiosperms/$).$] and trailer=[00000001] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
+At time [14.001], Node[1] Sending [NACK] with number [5] ,loss [No].
+At time [14.501], Node[0] , Introducing channel error with code =[0000] .
+At time [15.001], Node[0] [sent] frame with seq_num=[6] and payload=[$/$/$the union of sperm with eggs.$] and trailer=[00000011] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
+At time [15.002], Node[1] Sending [ACK] with number [5] ,loss [No].
+At time [15.502], Node[0] [sent] frame with seq_num=[5] and payload=[$usually by providing a mechanism for Flowers may facilitate outcrossing/$$] and trailer=[00000010] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
+At time [16.501], Node[1] Sending [ACK] with number [5] ,loss [No].
 Uploading payload = [usually by providing a mechanism for Flowers may facilitate outcrossing$] and seq_num = [5] to the network layer
 Uploading payload = [$$the union of sperm with eggs.] and seq_num = [6] to the network layer
 Uploading payload = [(plants of the division Magnoliophyta,  is to facilitate reproduction,] and seq_num = [3] to the network layer
-At time [16.502], Node[1] Sending [ACK] with number [0] ,loss [No].
 Timeout event at time [17.001], at Node[0] for frame with seq_num=[5]
+At time [17.002], Node[1] Sending [ACK] with number [0] ,loss [No].
 At time [17.502], Node[0] [sent] frame with seq_num=[5] and payload=[$usually by providing a mechanism for Flowers may facilitate outcrossing/$$] and trailer=[00000010] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
 At time [19.002], Node[1] Sending [NACK] with number [0] ,loss [No].
 At time [20.503], Node[0] [sent] frame with seq_num=[4] and payload=[$The biological function of /$//a flower  $] and trailer=[00000011] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
 Uploading payload = [The biological function of $/a flower  ] and seq_num = [4] to the network layer
 Uploading payload = [usually by providing a mechanism for Flowers may facilitate outcrossing$] and seq_num = [5] to the network layer
 At time [22.003], Node[1] Sending [ACK] with number [2] ,loss [No].
-Timeout event at time [22.502], at Node[0] for frame with seq_num=[6]
-At time [23.003], Node[0] [sent] frame with seq_num=[6] and payload=[$/$/$the union of sperm with eggs.$] and trailer=[00000011] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
+Timeout event at time [25.001], at Node[0] for frame with seq_num=[6]
+At time [25.502], Node[0] [sent] frame with seq_num=[6] and payload=[$/$/$the union of sperm with eggs.$] and trailer=[00000011] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
 Uploading payload = [$$the union of sperm with eggs.] and seq_num = [6] to the network layer
-At time [24.503], Node[1] Sending [ACK] with number [3] ,loss [No].
+At time [27.002], Node[1] Sending [ACK] with number [3] ,loss [No].

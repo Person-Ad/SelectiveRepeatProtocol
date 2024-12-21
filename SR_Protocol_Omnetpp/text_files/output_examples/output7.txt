@@ -38,7 +38,7 @@ At time[9.001], Node[1] Sending [ACK] with number [1], loss[No]
 At time [10.001], Node[0] , Introducing channel error with code =[0000] .
 At time[10.501], Node[0] [sent] frame with seq_num=[1] and payload=[$Hi1$] and trailer=[00010110] , Modified [-1] , Lost [No], Duplicate [0], Delay [0]
 At time [10.501], Node[0] , Introducing channel error with code =[1000] .
-At time[11.001], Node[0] [sent] frame with seq_num=[2] and payload=[Hi2$] and trailer=[00101001] , Modified [5] , Lost [No], Duplicate [0], Delay [0]
+At time[11.001], Node[0] [sent] frame with seq_num=[2] and payload=[$Hi2&] and trailer=[00101001] , Modified [33] , Lost [No], Duplicate [0], Delay [0]
 At time [11.001], Node[0] , Introducing channel error with code =[0000] .
 Uploading payload=[Hi1] and seq_num=[1] to the network layer
 At time[11.501], Node[0] [sent] frame with seq_num=[3] and payload=[$Hi3$] and trailer=[00111100] , Modified [-1] , Lost [No], Duplicate [0], Delay [0]
@@ -81,7 +81,7 @@ At time[21.003], Node[1] Sending [ACK] with number [2], loss[No]
 At time[21.503], Node[0] [sent] frame with seq_num=[3] and payload=[$Good3$] and trailer=[01110110] , Modified [-1] , Lost [No], Duplicate [0], Delay [0]
 At time [21.503], Node[0] , Introducing channel error with code =[1100] .
 Uploading payload=[Good2] and seq_num=[2] to the network layer
-At time[22.003], Node[0] [sent] frame with seq_num=[4] and payload=[$Gooä4$] and trailer=[00011101] , Modified [39] , Lost [Yes], Duplicate [0], Delay [0]
+At time[22.003], Node[0] [sent] frame with seq_num=[4] and payload=[$Goo`4$] and trailer=[00011101] , Modified [34] , Lost [Yes], Duplicate [0], Delay [0]
 At time [22.003], Node[0] , Introducing channel error with code =[0100] .
 Uploading payload=[Good3] and seq_num=[3] to the network layer
 At time[22.503], Node[1] Sending [ACK] with number [3], loss[No] 
@@ -105,7 +105,7 @@ At time[34.504], Node[1] Sending [ACK] with number [6], loss[No]
 At time [35.004], Node[0] , Introducing channel error with code =[1001] .
 At time[35.004], Node[0] sent frame with seq_num=[7] and payload=[$Good7$] and trailer=[00100010] , Modified [-1] , Lost [No], Duplicate [0], Delay [0]
 Uploading payload=[Good6] and seq_num=[6] to the network layer
-At time[35.504], Node[0] [sent] frame with seq_num=[0] and payload=[$Bye04] and trailer=[10101000] , Modified [44] , Lost [No], Duplicate [0], Delay [4]
+At time[35.504], Node[0] [sent] frame with seq_num=[0] and payload=[,Bye0$] and trailer=[10101000] , Modified [3] , Lost [No], Duplicate [0], Delay [4]
 At time [35.504], Node[0] , Introducing channel error with code =[0000] .
 Uploading payload=[Good7] and seq_num=[7] to the network layer
 At time[36.004], Node[1] Sending [ACK] with number [7], loss[No] 

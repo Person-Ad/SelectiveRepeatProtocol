@@ -186,7 +186,8 @@ void Node::sendDataMessage(int index){
     Logger::logFrameSent(simTime().dbl(), index, modifiedMessage, CRC, frame->modificationBit , frame->isLoss, frame->duplicate, frame->delay);
     // Only send if Loss didn't occur 
     if(!frame->isLoss){
-        sendDelayed(msgToSend, networkParams.TD ,"dataGate$o");
+        // Sending the frame and adding delay if exists 
+        sendDelayed(msgToSend, networkParams.TD + frame->delay ,"dataGate$o");
     }
     // Check Duplicate 
     if(frame->duplicate){
@@ -306,7 +307,7 @@ Frame * Node::parseFlags(const std::string& errorNumber, const std::string messa
     newFrame->modificationBit = (errorNumber[0] == '1') ? randomBit : -1; // Assuming bit 0 is modified
     newFrame->isLoss = (errorNumber[1] == '1');
     newFrame->duplicate = (errorNumber[2] == '1') ? 1 : 0;      
-    newFrame->delay = (errorNumber[3] == '1') ? networkParams.DD : 0;           
+    newFrame->delay = (errorNumber[3] == '1') ? networkParams.ED : 0;           
 
     return newFrame;
 }
@@ -397,7 +398,7 @@ void Node::processValidReceivedMessage(CustomMessage_Base* receivedMsg)
     in_buffer[seqNo % networkParams.WS] = frame;
     // Rest SentNack boolean when valid message is received 
     sentNack[seqNo % networkParams.WS] = false;
-    EV<<"Received Seq No : "<<seqNo<<"  Expected Frame: "<<frame_expected<<"\n";
+    EV<<"Received Seq No : "<<seqNo<<"  Expected Frame: "<<frame_expected<< " Too Far : "<<too_far<< "\n";
     bool shouldSendNack = true; 
      // Send ACK to sender 
     bool sendAck = false; 

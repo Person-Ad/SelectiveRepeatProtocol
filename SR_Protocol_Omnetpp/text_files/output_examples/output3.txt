@@ -17,7 +17,7 @@ Uploading payload=[not to be confused with cherry trees that/ produce fruit for 
 At time[6], Node[1] Sending [ACK] with number [1], loss[No] 
 At time[6.5], Node[1] Sending [ACK] with number [4], loss[No] 
 At time [7], Node[0] , Introducing channel error with code =[1000] .
-At time[7.5], Node[0] [sent] frame with seq_num=[4] and payload=[$It is considered// the nati/nal flower of Japan.$] and trailer=[00001011] , Modified [230] , Lost [No], Duplicate [0], Delay [0]
+At time[7.5], Node[0] [sent] frame with seq_num=[4] and payload=[$It is considered// dhe national flower of Japan.$] and trailer=[00001011] , Modified [164] , Lost [No], Duplicate [0], Delay [0]
 At time[9], Node[1] Sending [NACK] with number [4], loss[No] 
 At time[10.501], Node[0] sent frame with seq_num=[4] and payload=[$It is considered// the national flower of Japan.$] and trailer=[00001011] , Modified [-1] , Lost [No], Duplicate [0], Delay [0]
 Uploading payload=[It is considered/ the national flower of Japan.] and seq_num=[4] to the network layer

@@ -52,7 +52,7 @@ At time [18.001], Node[0] , Introducing channel error with code =[0000] .
 At time[18.501], Node[0] [sent] frame with seq_num=[3] and payload=[$It can also be played by plucking$] and trailer=[11101111] , Modified [-1] , Lost [No], Duplicate [0], Delay [0]
 At time [18.501], Node[0] , Introducing channel error with code =[1001] .
 At time[18.501], Node[1] Sending [NACK] with number [1], loss[No] 
-At time[19.001], Node[0] [sent] frame with seq_num=[4] and payload=[$the strings/$ with the fingers (pizzicato)$] and trailer=[10100111] , Modified [255] , Lost [No], Duplicate [0], Delay [4]
+At time[19.001], Node[0] [sent] frame with seq_num=[4] and payload=[$the strings/$ with tha fingers (pizzicato)$] and trailer=[10100111] , Modified [178] , Lost [No], Duplicate [0], Delay [4]
 At time[20.001], Node[1] Sending [ACK] with number [1], loss[No] 
 At time[20.002], Node[0] sent frame with seq_num=[1] and payload=[$and is most commonly played by drawing$] and trailer=[11100100] , Modified [-1] , Lost [No], Duplicate [0], Delay [0]
 Uploading payload=[and is most commonly played by drawing] and seq_num=[1] to the network layer
