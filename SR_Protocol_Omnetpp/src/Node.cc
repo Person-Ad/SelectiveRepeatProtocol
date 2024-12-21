@@ -18,7 +18,7 @@
 
 
 Define_Module(Node);
-std::string x = "7";
+std::string x = "3";
 
 void Node::initialize()
 {
@@ -196,8 +196,9 @@ void Node::sendDataMessage(int index){
     // Check Duplicate 
     if(frame->duplicate){
         CustomMessage_Base* duplicatedMsg = msgToSend->dup();
-        sendDelayed(duplicatedMsg, networkParams.TD + networkParams.DD ,"dataGate$o");
-        Logger::logFrameSent(simTime().dbl() + networkParams.DD, index, stuffedMessage, CRC, frame->modificationBit , frame->isLoss, 2, frame->delay);
+        // The duplicate message has the same problems 
+        sendDelayed(duplicatedMsg, networkParams.TD + networkParams.DD + frame->delay ,"dataGate$o");
+        Logger::logFrameSent(simTime().dbl() + networkParams.DD , index, modifiedMessage, CRC, frame->modificationBit , frame->isLoss, 2, frame->delay);
     }
 
     // Add Timeout 
