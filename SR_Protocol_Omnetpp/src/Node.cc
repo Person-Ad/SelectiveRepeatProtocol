@@ -69,6 +69,9 @@ void Node::handleMessage(cMessage *msg)
             case FrameType::Timeout:
                 handleTimeout(receivedMsg);
                 break;
+            case FrameType::SendDataTimeout:
+                sendTimeoutDataMessage(receivedMsg);
+                break;
             default:
                 // Handle unknown or unhandled frame types
                 EV << "Received unknown frame type" << std::endl;
@@ -145,9 +148,6 @@ void Node::handleAckResponse(CustomMessage_Base *receivedMsg)
         }
     }
     processMessage(currentIndex);
-
-
-
 }
 void Node::handleNackResponse(CustomMessage_Base *receivedMsg)
 {
@@ -157,6 +157,9 @@ void Node::handleNackResponse(CustomMessage_Base *receivedMsg)
 
 void Node::handleIncomingDataMessage(CustomMessage_Base *receivedMsg) 
 {
+    //TODO: Add Handling Lost ACK 
+    double random = uniform(0, 1);
+    bool lostACK = random < networkParams.LP ? true : false;
     // Extract message details
     std::string payload = receivedMsg->getPayload(); 
     char trailerChar = receivedMsg->getTrailer(); 
@@ -219,11 +222,15 @@ void Node::sendDataMessage(int index){
     // Modify message if needed 
     std::string modifiedMessage = modifyMessage(stuffedMessage, frame->modificationBit);
     msgToSend ->setPayload(modifiedMessage.c_str());
-    
+    msgToSend->setFrameType(static_cast<int>(FrameType::Data));
+
     // Send the data message
-    sendDelayed(msgToSend, networkParams.TD ,"dataGate$o");
+    Logger::logFrameSent(simTime().dbl(), index, modifiedMessage, CRC, frame->modificationBit , frame->isLoss, frame->duplicate, frame->delay);
+    // Only send if Loss didn't occur 
+    if(!frame->isLoss){
+        sendDelayed(msgToSend, networkParams.TD ,"dataGate$o");
+    }
     // Check Duplicate 
-    Logger::logFrameSent(simTime().dbl(), index, stuffedMessage, CRC, frame->modificationBit , frame->isLoss, frame->duplicate, frame->delay);
     if(frame->duplicate){
         CustomMessage_Base* duplicatedMsg = msgToSend->dup();
         sendDelayed(duplicatedMsg, networkParams.TD + networkParams.DD ,"dataGate$o");
@@ -235,6 +242,21 @@ void Node::sendDataMessage(int index){
     // Add the unmodified payload to the timeout message
     timeoutMsg->setPayload(stuffedMessage.c_str());
     startTimer(timeoutMsg, index);
+
+}
+
+void Node::sendTimeoutDataMessage(CustomMessage_Base *msg){
+    isProcessing = false;
+    // Extract relevant data from the message
+    std::string stuffedMessage = msg->getPayload();
+    std::string CRC = Utils::binaryStringFromChar(msg->getTrailer());
+    
+    msg ->setPayload(stuffedMessage.c_str());
+    msg->setFrameType(static_cast<int>(FrameType::Data));
+    
+    // Send the data message
+    sendDelayed(msg, networkParams.TD ,"dataGate$o");
+    Logger::logFrameSent(simTime().dbl(), msg->getHeader(), stuffedMessage, CRC, -1 , false , 0, 0);
 
 }
 
@@ -326,12 +348,15 @@ void Node::handleTimeout(CustomMessage_Base *msg){
 
     Logger::logTimeout(simTime().dbl(),  msg->getHeader());
     //TODO: Add ScheduleAt with PT to send the Unmodified message
+    msg->setFrameType(static_cast<int>(FrameType::SendDataTimeout));
+    scheduleAt(simTime() + networkParams.PT, msg);
 }
 
 void Node::to_network_layer(CustomMessage_Base *receivedMsg){
     std::string unstuffedMessage = Framing::unstuff(receivedMsg->getPayload());
     Logger::logUpload(simTime().dbl(), unstuffedMessage, receiverCurrentIndex);
 }
+
 Frame * Node::parseFlags(const std::string& errorNumber, const std::string message) {
     if (errorNumber.size() != 4) {
         throw std::invalid_argument("Invalid errorNumber length: " + errorNumber);

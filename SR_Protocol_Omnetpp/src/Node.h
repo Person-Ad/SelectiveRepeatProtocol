@@ -75,6 +75,7 @@ enum class FrameType {
     PrepareTime=5, // Means it's time to process 
     DuplicatedFrame = 6,
     Timeout = 7,
+    SendDataTimeout=8
 };
 
 class Node : public cSimpleModule
@@ -152,6 +153,8 @@ class Node : public cSimpleModule
     // Timeout 
     std::vector<CustomMessage_Base *> timeoutMessages;
     void handleTimeout(CustomMessage_Base *msg);
+    void sendTimeoutDataMessage(CustomMessage_Base *msg);
+    
 };
 
 #endif
