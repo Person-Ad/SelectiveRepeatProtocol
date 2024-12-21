@@ -135,7 +135,7 @@ void Node::incrementCircular(int & number){
 
 std::string Node::generateInputFilePath(int nodeIndex) 
 {
-    nodeIndex = 7; 
+    // nodeIndex = 7; 
     return "../text_files/input" + std::to_string(nodeIndex) + ".txt";
 }
 
@@ -148,7 +148,7 @@ void Node::handleAckResponse(CustomMessage_Base *receivedMsg)
     // Circular check for ACK within the sliding window
     if (Utils::between(ack_expected, ackNo, next_frame_to_send)) {
         while (ack_expected != ackNo) {
-            stopTimer(ack_expected); // Stop timers for acknowledged frames
+            stopTimer(ack_expected % networkParams.WS); // Stop timers for acknowledged frames
             nbuffered--;
             incrementCircular(ack_expected); // Slide window
         }
@@ -160,7 +160,8 @@ void Node::handleNackResponse(CustomMessage_Base *receivedMsg)
     isProcessing = false;
     //TODO: Add here logic to stop the processing packet by adding a boolean after the PT to schedule another PT and resend the corrupted packet
     int seqNo = static_cast<int>(receivedMsg->getAckNackNumber());
-    stopTimer(seqNo % networkParams.WS);
+    EV << "Received NACK: " << seqNo << "\n";
+    // stopTimer(seqNo % networkParams.WS);
     Frame * frame = buffer[seqNo % (networkParams.WS)];
     CustomMessage_Base * cleanMessage = frame->message->dup(); 
     cleanMessage->setFrameType(static_cast<int>(FrameType::SendDataTimeout));
@@ -275,6 +276,7 @@ void Node::startTimer(CustomMessage_Base *msgToSend ,  int index){
 }
 
 void Node::stopTimer(int index){
+    EV <<"Stoping Timer Index: "<<index<<"\n";
     // Clear Timeouts 
     if (timeoutMessages[index] && timeoutMessages[index]->isScheduled()) // check if timer is scheduled
     {
@@ -285,11 +287,12 @@ void Node::stopTimer(int index){
 
 void Node::handleTimeout(CustomMessage_Base *msg){
 
-    int seqNo = static_cast<int>(msg->getHeader());
+    CustomMessage_Base * timeoutMsg = msg->dup();
+    int seqNo = static_cast<int>(timeoutMsg->getHeader());
     Logger::logTimeout(simTime().dbl(), seqNo);
     //TODO: Add ScheduleAt with PT to send the Unmodified message
-    msg->setFrameType(static_cast<int>(FrameType::SendDataTimeout));
-    scheduleAt(simTime() + networkParams.PT + 0.001, msg);
+    timeoutMsg->setFrameType(static_cast<int>(FrameType::SendDataTimeout));
+    scheduleAt(simTime() + networkParams.PT + 0.001, timeoutMsg);
 }
 
 Frame * Node::parseFlags(const std::string& errorNumber, const std::string message) {
