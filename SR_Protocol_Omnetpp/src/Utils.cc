@@ -75,10 +75,10 @@ std::string Utils::binaryStringFromChar(char trailer) {
 bool Utils::between(int a, int b, int c) {
     // Case 1: No wrap-around, linear check
     if (a <= c) {
-        return a <= b && b < c;
+        return a <= b && b <= c;
     }
     // Case 2: Wrap-around case
-    return a <= b || b < c;
+    return a <= b || b <= c;
 }
 
 bool Utils::isSeqNoInRecvWindow(int frame_expected, int seqNo, int too_far) {

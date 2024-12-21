@@ -37,5 +37,3 @@ At time [18.002], Node[0] [sent] frame with seq_num=[5] and payload=[$usually by
 Uploading payload = [usually by providing a mechanism for Flowers may facilitate outcrossing$] and seq_num = [5] to the network layer
 Uploading payload = [$$the union of sperm with eggs.] and seq_num = [6] to the network layer
 At time [19.002], Node[1] Sending [ACK] with number [7] ,loss [No].
-Timeout event at time [25.001], at Node[0] for frame with seq_num=[6]
-At time [25.502], Node[0] [sent] frame with seq_num=[6] and payload=[$/$/$the union of sperm with eggs.$] and trailer=[00000011] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].

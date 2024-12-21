@@ -148,6 +148,7 @@ void Node::handleAckResponse(CustomMessage_Base *receivedMsg)
     // Circular check for ACK within the sliding window
     if (Utils::between(ack_expected, ackNo, next_frame_to_send)) {
         while (ack_expected != ackNo) {
+            EV <<"Stoping Timer Index: "<<ack_expected<<"\n";
             stopTimer(ack_expected % networkParams.WS); // Stop timers for acknowledged frames
             nbuffered--;
             incrementCircular(ack_expected); // Slide window
@@ -277,7 +278,6 @@ void Node::startTimer(CustomMessage_Base *msgToSend ,  int index){
 }
 
 void Node::stopTimer(int index){
-    EV <<"Stoping Timer Index: "<<index<<"\n";
     // Clear Timeouts 
     if (timeoutMessages[index] && timeoutMessages[index]->isScheduled()) // check if timer is scheduled
     {
