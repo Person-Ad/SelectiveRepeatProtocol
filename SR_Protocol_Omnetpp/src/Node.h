@@ -87,7 +87,7 @@ class Node : public cSimpleModule
     std::queue<std::string> packets;
     int windowStart = 0;      // Start index of the window
     int windowEnd = 0;        // End index of the window
-    int currentIndex = 0;     // Current index being processed within the window
+    int next_frame_to_send = 0;     // Current index being processed within the window
     int nbuffered = 0; // Number of packets buffered 
     int ack_expected = 0;
     std::vector<Frame *> buffer; 
@@ -118,11 +118,9 @@ class Node : public cSimpleModule
 
     // Message handling methods
     void handleCoordinatorInitiation(CustomMessage_Base *receivedMsg);
-    void handleAckNackResponse(CustomMessage_Base *receivedMsg);
     void handleAckResponse(CustomMessage_Base *receivedMsg);
     void handleNackResponse(CustomMessage_Base *receivedMsg);
     void handleIncomingDataMessage(CustomMessage_Base *receivedMsg);
-    bool shouldContinueReading(int rangeStart, int rangeEnd, int currentSeq);
     void processMessage(int);
 
     // Network Layer 

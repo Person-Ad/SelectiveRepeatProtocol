@@ -54,13 +54,13 @@ void Node::handleMessage(cMessage *msg)
 
             case FrameType::SendTime:
                 // Send to Receiver
-                sendDataMessage(currentIndex);
-                incrementCircular(currentIndex);
-                processMessage(currentIndex);
+                sendDataMessage(next_frame_to_send);
+                incrementCircular(next_frame_to_send);
+                processMessage(next_frame_to_send);
                 break;
             case FrameType::PrepareTime:
                 // Start Preparing 
-                processMessage(currentIndex);
+                processMessage(next_frame_to_send);
                 break;
             case FrameType::DuplicatedFrame:
                 // Start Preparing 
@@ -137,41 +137,35 @@ std::string Node::generateInputFilePath(int nodeIndex)
     return "../text_files/input" + std::to_string(nodeIndex) + ".txt";
 }
 
-void Node::handleAckNackResponse(CustomMessage_Base *receivedMsg) 
-{
-    // Implement ACK/NACK handling logic
-    // This method is currently empty in the original code
-    // Add appropriate logic for handling sender node responses
-    if (static_cast<FrameType>(receivedMsg->getFrameType()) == FrameType::ACK) {
-        handleAckResponse(receivedMsg);
-    }else if (static_cast<FrameType>(receivedMsg->getFrameType()) == FrameType::NACK) {
-        handleNackResponse(receivedMsg);
-    }
-
-}
 void Node::handleAckResponse(CustomMessage_Base *receivedMsg)
 {
     int ackNo = receivedMsg->getAckNackNumber();
-    if (ackNo >= ack_expected && ackNo < currentIndex) {
+    if (ackNo >= ack_expected && ackNo < next_frame_to_send) {
         while (ack_expected != ackNo) {
             stopTimer(ack_expected); // Stop timers for acknowledged frames
             nbuffered--;
             incrementCircular(ack_expected); // Slide window
         }
     }
-    processMessage(currentIndex);
+    processMessage(next_frame_to_send);
 }
 void Node::handleNackResponse(CustomMessage_Base *receivedMsg)
 {
     //TODO: Add here logic to stop the processing packet by adding a boolean after the PT to schedule another PT and resend the corrupted packet
-    stopTimer(receivedMsg->getHeader());
+    int seqNo = static_cast<int>(receivedMsg->getHeader());
+    stopTimer(seqNo);
+    Frame * frame = buffer[seqNo % (networkParams.WS)];
+    CustomMessage_Base * cleanMessage = frame->message->dup(); 
+    cleanMessage->setFrameType(static_cast<int>(FrameType::SendDataTimeout));
+    EV<<"NACK "<<seqNo<<" "<<cleanMessage->getPayload()<<"\n";
+    scheduleAt(simTime() + networkParams.PT + 0.001, cleanMessage);
 }
 
 void Node::sendDataMessage(int index){
     isProcessing = false;
     // Extract relevant data from the message
     Frame * frame = buffer[index % (networkParams.WS)];
-    CustomMessage_Base* msgToSend = frame->message;
+    CustomMessage_Base* msgToSend = frame->message->dup();
     std::string stuffedMessage = msgToSend->getPayload();
     std::string CRC = Utils::binaryStringFromChar(msgToSend->getTrailer());
     
@@ -207,38 +201,15 @@ void Node::sendTimeoutDataMessage(CustomMessage_Base *msg){
     std::string stuffedMessage = msg->getPayload();
     std::string CRC = Utils::binaryStringFromChar(msg->getTrailer());
     
-    msg ->setPayload(stuffedMessage.c_str());
+    msg->setPayload(stuffedMessage.c_str());
     msg->setFrameType(static_cast<int>(FrameType::Data));
     
     // Send the data message
     sendDelayed(msg, networkParams.TD ,"dataGate$o");
-    Logger::logFrameSent(simTime().dbl(), msg->getHeader(), stuffedMessage, CRC, -1 , false , 0, 0);
+    int seqNo = static_cast<int>(msg->getHeader());
+    Logger::logFrameSent(simTime().dbl(), seqNo, stuffedMessage, CRC, -1 , false , 0, 0);
 
 }
-
-bool Node::shouldContinueReading(int rangeStart, int rangeEnd, int currentSeq) {
-    // Log the input values
-    EV << "shouldContinueReading called with rangeStart=" << rangeStart 
-       << ", rangeEnd=" << rangeEnd 
-       << ", currentSeq=" << currentSeq << endl;
-
-    bool result;
-    
-    // Case 1: Non-wrapping range [rangeStart, rangeEnd)
-    if (rangeStart <= rangeEnd) {
-        result = (currentSeq >= rangeStart && currentSeq < rangeEnd);
-    }
-    // Case 2: Wrapping range, e.g., [rangeStart, rangeEnd) in circular buffers
-    else {
-        result = (currentSeq >= rangeStart || currentSeq < rangeEnd);
-    }
-
-    // Log the result before returning
-    EV << "Result of shouldContinueReading: " << (result ? "true" : "false") << endl;
-
-    return result;
-}
-
 
 void Node::processMessage(int index) {
     if(isProcessing){
@@ -249,6 +220,9 @@ void Node::processMessage(int index) {
     if(nbuffered >= networkParams.WS || packets.empty()){
         return ; 
     }
+    
+    nbuffered++;
+
     CustomMessage_Base* customMessage = new CustomMessage_Base();
     
     // Extract first message from lines
@@ -267,7 +241,7 @@ void Node::processMessage(int index) {
     
     char trailerChar = static_cast<char>(std::stoi(CRC, nullptr, 2));
     customMessage->setTrailer(trailerChar);
-    customMessage->setHeader(index);
+    customMessage->setHeader(static_cast<char>(index));
     
     // Here I didn't modify for the reason of timeout to have a clean and modified version at sendData
     customMessage->setPayload(stuffedMessage.c_str());
@@ -302,15 +276,11 @@ void Node::stopTimer(int index){
 
 void Node::handleTimeout(CustomMessage_Base *msg){
 
-    Logger::logTimeout(simTime().dbl(),  msg->getHeader());
+    int seqNo = static_cast<int>(msg->getHeader());
+    Logger::logTimeout(simTime().dbl(), seqNo);
     //TODO: Add ScheduleAt with PT to send the Unmodified message
     msg->setFrameType(static_cast<int>(FrameType::SendDataTimeout));
-    scheduleAt(simTime() + networkParams.PT, msg);
-}
-
-void Node::to_network_layer(CustomMessage_Base *receivedMsg){
-    std::string unstuffedMessage = Framing::unstuff(receivedMsg->getPayload());
-    Logger::logUpload(simTime().dbl(), unstuffedMessage, receiverCurrentIndex);
+    scheduleAt(simTime() + networkParams.PT + 0.001, msg);
 }
 
 Frame * Node::parseFlags(const std::string& errorNumber, const std::string message) {
@@ -391,7 +361,8 @@ bool Node::validateMessageCRC(const std::string& payload, const std::string& tra
 void Node::handleCRCError(CustomMessage_Base* receivedMsg) 
 {   
     // Send NACK only if in order
-    if(receivedMsg->getHeader() == frame_expected){
+    int seqNo = static_cast<int>(receivedMsg->getHeader());
+    if(seqNo == frame_expected){
         CustomMessage_Base* nackMessage = new CustomMessage_Base();
         nackMessage->setFrameType(static_cast<int>(FrameType::NACK));
         scheduleAt(simTime() + networkParams.PT, nackMessage);
@@ -402,13 +373,17 @@ void Node::processValidReceivedMessage(CustomMessage_Base* receivedMsg)
 {
     Frame * frame = new Frame();
     frame->message = receivedMsg;
-    in_buffer[receivedMsg->getHeader() % networkParams.WS] = frame;
+    int seqNo = static_cast<int>(receivedMsg->getHeader());
+    in_buffer[seqNo % networkParams.WS] = frame;
      // Send ACK to sender 
+    bool sendAck = false; 
     while (in_buffer[frame_expected % networkParams.WS] != nullptr) {
+        EV<<"Frame: "<<frame_expected<<"\n";
         to_network_layer(in_buffer[frame_expected % networkParams.WS]->message);
         in_buffer[frame_expected % networkParams.WS] = nullptr;
         incrementCircular(frame_expected);
         incrementCircular(too_far);
+        sendAck = true; 
     }
      CustomMessage_Base* ackMessage = new CustomMessage_Base();
      int ackNo = frame_expected;
@@ -430,4 +405,9 @@ void Node::sendNackMessage(CustomMessage_Base *msg){
     // Send the data message
     sendDelayed(msg, networkParams.TD ,"dataGate$o");
     Logger::logACK(simTime().dbl(), msg->getAckNackNumber(), false, false);
+}
+
+void Node::to_network_layer(CustomMessage_Base *receivedMsg){
+    std::string unstuffedMessage = Framing::unstuff(receivedMsg->getPayload());
+    Logger::logUpload(simTime().dbl(), unstuffedMessage, receiverCurrentIndex);
 }

@@ -8,15 +8,6 @@ At time [1.5], Node[0] [sent] frame with seq_num=[2] and payload=[$is the reprod
 At time [1.5], Node[0] , Introducing channel error with code =[0000] .
 At time [2], Node[1] Sending [NACK] with number [0] ,loss [No].
 At time [2], Node[0] [sent] frame with seq_num=[3] and payload=[$(plants of the division Magnoliophyta,  is to facilitate reproduction,$] and trailer=[00000001] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
-At time [2], Node[0] , Introducing channel error with code =[0001] .
 At time [2.1], Node[1] Sending [NACK] with number [0] ,loss [No].
 At time [2.5], Node[1] Sending [ACK] with number [0] ,loss [No].
-At time [2.5], Node[0] [sent] frame with seq_num=[4] and payload=[$The biological function of /$//a flower  $] and trailer=[00000011] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
-At time [2.5], Node[0] , Introducing channel error with code =[0100] .
-At time [3], Node[0] [sent] frame with seq_num=[5] and payload=[$usually by providing a mechanism for Flowers may facilitate outcrossing/$$] and trailer=[00000010] , Modified [-1] , Lost [Yes], Duplicate [0], Delay [0].
-At time [3], Node[0] , Introducing channel error with code =[0000] .
-Uploading payload = [The biological function of $/a flower  ] and seq_num = [0] to the network layer
-Uploading payload = [known as a bloom or blossom in flowering plants] and seq_num = [0] to the network layer
 At time [3.5], Node[1] Sending [ACK] with number [0] ,loss [No].
-At time [3.5], Node[0] [sent] frame with seq_num=[6] and payload=[$/$/$the union of sperm with eggs.$] and trailer=[00000011] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
-At time [4], Node[1] Sending [ACK] with number [2] ,loss [No].
