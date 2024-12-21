@@ -23,6 +23,7 @@ public:
     static void logChannelError(double time, const std::string& errorCode);
     static void logUpload(double time, const std::string& payload, int seqNum);
     static void logACK(double time, int ackNum, bool isAck, bool loss);
+    static void logTimeout(double time, int seqNum) ;
     static void log(const std::string& message);
     static void cleanup();  // Method to clean up the resources when done
 

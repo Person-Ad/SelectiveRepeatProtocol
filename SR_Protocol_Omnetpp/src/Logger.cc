@@ -64,6 +64,14 @@ void Logger::logACK(double time, int ackNum, bool isAck, bool loss) {
     log(logMessage.str());
 }
 
+void Logger::logTimeout(double time, int seqNum) {
+    std::stringstream logMessage;
+    logMessage << "Timeout event at time [" << time 
+               << "], at Node[" << senderIndex 
+               << "] for frame with seq_num=[" << seqNum << "]";
+    log(logMessage.str());
+}
+
 void Logger::log(const std::string& message) {
     // Lock the mutex to ensure thread-safe access to logFile
     std::lock_guard<std::mutex> lock(logFileMutex);  

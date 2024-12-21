@@ -21,11 +21,12 @@ Define_Module(Node);
 
 void Node::initialize()
 {
-    CRCModule = new ErrorDetection("101");
+    CRCModule = new ErrorDetection("111");
     networkParams = NetworkParameters::loadFromModule(getParentModule());
     windowEnd = networkParams.WS - 1 ;
     buffer = std::vector<Frame *>(networkParams.WS,nullptr);
     in_buffer = std::vector<Frame *>(networkParams.WS,nullptr);
+    timeoutMessages = std::vector<CustomMessage_Base *>(networkParams.WS,nullptr);
     too_far = networkParams.WS ;
 }
 
@@ -63,7 +64,10 @@ void Node::handleMessage(cMessage *msg)
                 break;
             case FrameType::DuplicatedFrame:
                 // Start Preparing 
-                sendDuplicateMessage(receivedMsg);
+                // sendDuplicateMessage(receivedMsg);
+                break;
+            case FrameType::Timeout:
+                handleTimeout(receivedMsg);
                 break;
             default:
                 // Handle unknown or unhandled frame types
@@ -141,10 +145,14 @@ void Node::handleAckResponse(CustomMessage_Base *receivedMsg)
         }
     }
     processMessage(currentIndex);
+
+
+
 }
 void Node::handleNackResponse(CustomMessage_Base *receivedMsg)
 {
-
+    //TODO: Add here logic to stop the processing packet by adding a boolean after the PT to schedule another PT and resend the corrupted packet
+    stopTimer(receivedMsg->getHeader());
 }
 
 void Node::handleIncomingDataMessage(CustomMessage_Base *receivedMsg) 
@@ -207,13 +215,27 @@ void Node::sendDataMessage(int index){
     CustomMessage_Base* msgToSend = frame->message;
     std::string stuffedMessage = msgToSend->getPayload();
     std::string CRC = Utils::binaryStringFromChar(msgToSend->getTrailer());
+    
+    // Modify message if needed 
+    std::string modifiedMessage = modifyMessage(stuffedMessage, frame->modificationBit);
+    msgToSend ->setPayload(modifiedMessage.c_str());
+    
     // Send the data message
     sendDelayed(msgToSend, networkParams.TD ,"dataGate$o");
     // Check Duplicate 
-    if(frame->duplicate){
-        sendDelayed(msgToSend, networkParams.TD + networkParams.DD ,"dataGate$o");
-    }
     Logger::logFrameSent(simTime().dbl(), index, stuffedMessage, CRC, frame->modificationBit , frame->isLoss, frame->duplicate, frame->delay);
+    if(frame->duplicate){
+        CustomMessage_Base* duplicatedMsg = msgToSend->dup();
+        sendDelayed(duplicatedMsg, networkParams.TD + networkParams.DD ,"dataGate$o");
+        Logger::logFrameSent(simTime().dbl() + networkParams.DD, index, stuffedMessage, CRC, frame->modificationBit , frame->isLoss, 2, frame->delay);
+    }
+
+    // Add Timeout 
+    CustomMessage_Base* timeoutMsg = msgToSend->dup();
+    // Add the unmodified payload to the timeout message
+    timeoutMsg->setPayload(stuffedMessage.c_str());
+    startTimer(timeoutMsg, index);
+
 }
 
 bool Node::shouldContinueReading(int rangeStart, int rangeEnd, int currentSeq) {
@@ -269,16 +291,15 @@ void Node::processMessage(int index) {
     customMessage->setTrailer(trailerChar);
     customMessage->setHeader(index);
     
-    // Modify message if needed 
-    std::string modifiedMessage = modifyMessage(stuffedMessage, frame->modificationBit);
-    customMessage->setPayload(modifiedMessage.c_str());
+    // Here I didn't modify for the reason of timeout to have a clean and modified version at sendData
+    customMessage->setPayload(stuffedMessage.c_str());
     customMessage->setName(customMessage->getPayload());
 
     // Set the frame type to 'SendTime'
     customMessage->setFrameType(static_cast<int>(FrameType::SendTime));
     // Schedule the next message after the specified PT (Process Time)
     scheduleAt(simTime() + networkParams.PT, customMessage);
-    
+
     // Adding the frame to buffer 
     frame->message = customMessage; 
     buffer[index % (networkParams.WS)] = frame;
@@ -286,13 +307,27 @@ void Node::processMessage(int index) {
     Logger::logChannelError(simTime().dbl(),errorNumber);
 }
 
-void Node::startTimer(int x){
-    
+void Node::startTimer(CustomMessage_Base *msgToSend ,  int index){
+    timeoutMessages[index] = msgToSend->dup();
+    timeoutMessages[index]->setFrameType(static_cast<int>(FrameType::Timeout));
+    scheduleAt(simTime() + networkParams.TO , timeoutMessages[index]);
 }
 
-void Node::stopTimer(int x){
-    
+void Node::stopTimer(int index){
+    // Clear Timeouts 
+    if (timeoutMessages[index] && timeoutMessages[index]->isScheduled()) // check if timer is scheduled
+    {
+        cancelAndDelete(timeoutMessages[index]); // delete the timer message
+        timeoutMessages[index] = nullptr;
+    }
 }
+
+void Node::handleTimeout(CustomMessage_Base *msg){
+
+    Logger::logTimeout(simTime().dbl(),  msg->getHeader());
+    //TODO: Add ScheduleAt with PT to send the Unmodified message
+}
+
 void Node::to_network_layer(CustomMessage_Base *receivedMsg){
     std::string unstuffedMessage = Framing::unstuff(receivedMsg->getPayload());
     Logger::logUpload(simTime().dbl(), unstuffedMessage, receiverCurrentIndex);
@@ -342,20 +377,5 @@ std::string Node::modifyMessage(const std::string& message, int errorBit) {
         erroredMessage.push_back(static_cast<char>(bits.to_ulong()));
     }
 
-    return erroredMessage;
-}
-
-void Node::duplicateMessage(CustomMessage_Base *receivedMsg, int duplicate) {
-    if(duplicate == 0){
-        return ; 
-    }
-    scheduleAt(simTime() + networkParams.PT + networkParams.DD, customMessage);
-    return erroredMessage;
-}
-
-void Node::sendDuplicateMessage(CustomMessage_Base *receivedMsg) {
-    receivedMsg->setFrameType(static_cast<int>(FrameType::Data));
-    scheduleAt(simTime() + networkParams.PT + networkParams.DD, receivedMsg);
-    Logger::logFrameSent(simTime().dbl(), index, stuffedMessage, CRC, false , false, 2, frame->delay);
     return erroredMessage;
 }

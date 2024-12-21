@@ -74,6 +74,7 @@ enum class FrameType {
     SendTime = 4, // Means it's time to send schedule Processing Time finished
     PrepareTime=5, // Means it's time to process 
     DuplicatedFrame = 6,
+    Timeout = 7,
 };
 
 class Node : public cSimpleModule
@@ -126,7 +127,7 @@ class Node : public cSimpleModule
     // Network Layer 
     void to_network_layer(CustomMessage_Base *receivedMsg);
     // Timer Methods 
-    void startTimer(int);
+    void startTimer(CustomMessage_Base *msgToSend ,  int index);
     void stopTimer(int);
     // Utility methods for message processing
     int extractNodeIndex();
@@ -148,6 +149,9 @@ class Node : public cSimpleModule
     // Errors 
     std::string modifyMessage(const std::string& message, int errorBit);
 
+    // Timeout 
+    std::vector<CustomMessage_Base *> timeoutMessages;
+    void handleTimeout(CustomMessage_Base *msg);
 };
 
 #endif
