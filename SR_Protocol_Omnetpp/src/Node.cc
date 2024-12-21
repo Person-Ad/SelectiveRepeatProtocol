@@ -135,42 +135,31 @@ void Node::incrementCircular(int & number){
 
 std::string Node::generateInputFilePath(int nodeIndex) 
 {
-    // nodeIndex = 7; 
+    nodeIndex = 7; 
     return "../text_files/input" + std::to_string(nodeIndex) + ".txt";
 }
 
 void Node::handleAckResponse(CustomMessage_Base *receivedMsg)
 {
+    isProcessing = false;
     int ackNo = receivedMsg->getAckNackNumber();
     EV << "Received ACK: " << ackNo << ", Expected ACK: " << ack_expected
     << ", Next Frame to Send: " << next_frame_to_send << "\n";
-    if (ack_expected <= ackNo && ackNo < next_frame_to_send) {
-        // Normal case - no wrap around
-        while (ack_expected <= ackNo) {
-            stopTimer(ack_expected);
+    if (ackNo >= ack_expected && ackNo < next_frame_to_send) {
+        while (ack_expected != ackNo) {
+            stopTimer(ack_expected); // Stop timers for acknowledged frames
             nbuffered--;
-            incrementCircular(ack_expected);
-        }
-    } else if (ack_expected > next_frame_to_send) {
-        // Wrap around case
-        while (ack_expected <= networkParams.SN) {
-            stopTimer(ack_expected);
-            nbuffered--;
-            incrementCircular(ack_expected);
-        }
-        while (ack_expected <= ackNo) {
-            stopTimer(ack_expected);
-            nbuffered--;
-            incrementCircular(ack_expected);
+            incrementCircular(ack_expected); // Slide window
         }
     }
     processMessage(next_frame_to_send);
 }
 void Node::handleNackResponse(CustomMessage_Base *receivedMsg)
 {
+    isProcessing = false;
     //TODO: Add here logic to stop the processing packet by adding a boolean after the PT to schedule another PT and resend the corrupted packet
     int seqNo = static_cast<int>(receivedMsg->getAckNackNumber());
-    stopTimer(seqNo);
+    stopTimer(seqNo % networkParams.WS);
     Frame * frame = buffer[seqNo % (networkParams.WS)];
     CustomMessage_Base * cleanMessage = frame->message->dup(); 
     cleanMessage->setFrameType(static_cast<int>(FrameType::SendDataTimeout));
@@ -207,7 +196,7 @@ void Node::sendDataMessage(int index){
     CustomMessage_Base* timeoutMsg = msgToSend->dup();
     // Add the unmodified payload to the timeout message
     timeoutMsg->setPayload(stuffedMessage.c_str());
-    startTimer(timeoutMsg, index);
+    startTimer(timeoutMsg, index  % networkParams.WS);
 
 }
 
@@ -228,6 +217,8 @@ void Node::sendTimeoutDataMessage(CustomMessage_Base *msg){
 }
 
 void Node::processMessage(int index) {
+    EV << "isProcessing: " << isProcessing << ", nbuffered: " << nbuffered 
+    << ", WS: " << networkParams.WS << ", packets: " << packets.size() << "\n";
     if(isProcessing){
         return;
     }
