@@ -23,7 +23,7 @@
 #include "Framing.h"
 #include "Logger.h"
 #include <bitset> 
-#include <queue> 
+#include <deque> 
 
 using namespace omnetpp;
 
@@ -84,7 +84,7 @@ class Node : public cSimpleModule
     NetworkParameters networkParams;
     bool isSenderNode = false; 
     // Sender related parameters
-    std::queue<std::string> packets;
+    std::deque<std::string> packets;
     int windowStart = 0;      // Start index of the window
     int windowEnd = 0;        // End index of the window
     int next_frame_to_send = 0;     // Current index being processed within the window
@@ -107,10 +107,15 @@ class Node : public cSimpleModule
     bool isLoss = false;
     bool isDuplicate = false;
     bool isDelayed = false;
+
+    bool interruptTimeoutNack = false;
+
+    // Temporary data for interrupting processing when NACK / Timeout happens 
+    std::string prevLine = ""; 
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
-    void sendDataMessage(int);
+    void sendNextDataMessage();
 
 
     // Message type detection methods

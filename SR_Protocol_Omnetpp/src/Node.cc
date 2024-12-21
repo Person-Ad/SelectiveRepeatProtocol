@@ -18,7 +18,7 @@
 
 
 Define_Module(Node);
-std::string x = "5";
+std::string x = "0";
 
 void Node::initialize()
 {
@@ -56,9 +56,7 @@ void Node::handleMessage(cMessage *msg)
 
             case FrameType::SendTime:
                 // Send to Receiver
-                sendDataMessage(next_frame_to_send);
-                incrementCircular(next_frame_to_send);
-                processMessage(next_frame_to_send);
+                sendNextDataMessage();
                 break;
             case FrameType::PrepareTime:
                 // Start Preparing 
@@ -114,7 +112,7 @@ void Node::handleCoordinatorInitiation(CustomMessage_Base *receivedMsg)
     // Read input file for this node
     std::vector<std::string> lines = Utils::readFileLines(generateInputFilePath(nodeIndex)); 
     for (const auto& line : lines) {
-        packets.push(line);
+        packets.push_back(line);
     }
     // Prepare and send first message
     int startTime = atoi(receivedMsg->getPayload());
@@ -170,12 +168,18 @@ void Node::handleNackResponse(CustomMessage_Base *receivedMsg)
     CustomMessage_Base * cleanMessage = frame->message->dup(); 
     cleanMessage->setFrameType(static_cast<int>(FrameType::SendDataTimeout));
     scheduleAt(simTime() + networkParams.PT + 0.001, cleanMessage);
+    interruptTimeoutNack = true; 
 }
 
-void Node::sendDataMessage(int index){
+void Node::sendNextDataMessage(){
+    // This means that I can't send now 
+    if(interruptTimeoutNack){
+        return ; 
+    }
+    prevLine = "";
     isProcessing = false;
     // Extract relevant data from the message
-    Frame * frame = buffer[index % (networkParams.WS)];
+    Frame * frame = buffer[next_frame_to_send % (networkParams.WS)];
     CustomMessage_Base* msgToSend = frame->message->dup();
     std::string stuffedMessage = msgToSend->getPayload();
     std::string CRC = Utils::binaryStringFromChar(msgToSend->getTrailer());
@@ -185,9 +189,9 @@ void Node::sendDataMessage(int index){
     msgToSend ->setPayload(modifiedMessage.c_str());
     msgToSend->setFrameType(static_cast<int>(FrameType::Data));
 
-    EV << "Sending Data Message Index : " << index<< " Modified Message : "<<modifiedMessage<<"\n";
+    EV << "Sending Data Message next_frame_to_send : " << next_frame_to_send<< " Modified Message : "<<modifiedMessage<<"\n";
     // Send the data message
-    Logger::logFrameSent(simTime().dbl(), index, modifiedMessage, CRC, frame->modificationBit , frame->isLoss, frame->duplicate, frame->delay);
+    Logger::logFrameSent(simTime().dbl(), next_frame_to_send, modifiedMessage, CRC, frame->modificationBit , frame->isLoss, frame->duplicate, frame->delay);
     // Only send if Loss didn't occur 
     if(!frame->isLoss){
         // Sending the frame and adding delay if exists 
@@ -198,14 +202,18 @@ void Node::sendDataMessage(int index){
         CustomMessage_Base* duplicatedMsg = msgToSend->dup();
         // The duplicate message has the same problems 
         sendDelayed(duplicatedMsg, networkParams.TD + networkParams.DD + frame->delay ,"dataGate$o");
-        Logger::logFrameSent(simTime().dbl() + networkParams.DD , index, modifiedMessage, CRC, frame->modificationBit , frame->isLoss, 2, frame->delay);
+        Logger::logFrameSent(simTime().dbl() + networkParams.DD , next_frame_to_send, modifiedMessage, CRC, frame->modificationBit , frame->isLoss, 2, frame->delay);
     }
 
     // Add Timeout 
     CustomMessage_Base* timeoutMsg = msgToSend->dup();
     // Add the unmodified payload to the timeout message
     timeoutMsg->setPayload(stuffedMessage.c_str());
-    startTimer(timeoutMsg, index  % networkParams.WS);
+    startTimer(timeoutMsg, next_frame_to_send  % networkParams.WS);
+
+    // Process Next Message 
+    incrementCircular(next_frame_to_send);
+    processMessage(next_frame_to_send);
 
 }
 
@@ -223,6 +231,15 @@ void Node::sendTimeoutDataMessage(CustomMessage_Base *msg){
     int seqNo = static_cast<int>(msg->getHeader());
     Logger::logFrameSent(simTime().dbl(), seqNo, stuffedMessage, CRC, -1 , false , 0, 0);
 
+    if(interruptTimeoutNack && !prevLine.empty()){
+        // Reverse what processMessage did     
+        nbuffered--;
+        isProcessing = false;
+        packets.push_front(prevLine);
+        prevLine = "";
+        interruptTimeoutNack = false; 
+        processMessage(next_frame_to_send);
+    }
 }
 
 void Node::processMessage(int index) {
@@ -243,7 +260,8 @@ void Node::processMessage(int index) {
     
     // Extract first message from lines
     std::string nextLine = packets.front();
-    packets.pop();
+    prevLine = nextLine;
+    packets.pop_front();
     std::pair<std::string,std::string> extractedMessage = Utils::extractMessage(nextLine); 
     std::string errorNumber = extractedMessage.first;  
     std::string message = extractedMessage.second;  
@@ -298,6 +316,8 @@ void Node::handleTimeout(CustomMessage_Base *msg){
     //TODO: Add ScheduleAt with PT to send the Unmodified message
     timeoutMsg->setFrameType(static_cast<int>(FrameType::SendDataTimeout));
     scheduleAt(simTime() + networkParams.PT + 0.001, timeoutMsg);
+
+    interruptTimeoutNack = true; 
 }
 
 Frame * Node::parseFlags(const std::string& errorNumber, const std::string message) {
