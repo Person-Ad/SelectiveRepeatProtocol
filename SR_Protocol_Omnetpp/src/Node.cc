@@ -135,13 +135,13 @@ void Node::incrementCircular(int & number){
 
 std::string Node::generateInputFilePath(int nodeIndex) 
 {
-    // nodeIndex = 7; 
+    nodeIndex = 7; 
     return "../text_files/input" + std::to_string(nodeIndex) + ".txt";
 }
 
 void Node::handleAckResponse(CustomMessage_Base *receivedMsg)
 {
-    isProcessing = false;
+    // isProcessing = false;
     int ackNo = receivedMsg->getAckNackNumber();
     EV << "Received ACK: " << ackNo << ", Expected ACK: " << ack_expected
     << ", Next Frame to Send: " << next_frame_to_send << "\n";
@@ -158,7 +158,7 @@ void Node::handleAckResponse(CustomMessage_Base *receivedMsg)
 }
 void Node::handleNackResponse(CustomMessage_Base *receivedMsg)
 {
-    isProcessing = false;
+    // isProcessing = false;
     //TODO: Add here logic to stop the processing packet by adding a boolean after the PT to schedule another PT and resend the corrupted packet
     int seqNo = static_cast<int>(receivedMsg->getAckNackNumber());
     EV << "Received NACK: " << seqNo << "\n";
@@ -170,7 +170,6 @@ void Node::handleNackResponse(CustomMessage_Base *receivedMsg)
 }
 
 void Node::sendDataMessage(int index){
-    EV << "Sending Data Message Index :   " << index<<"\n";
     isProcessing = false;
     // Extract relevant data from the message
     Frame * frame = buffer[index % (networkParams.WS)];
@@ -183,6 +182,7 @@ void Node::sendDataMessage(int index){
     msgToSend ->setPayload(modifiedMessage.c_str());
     msgToSend->setFrameType(static_cast<int>(FrameType::Data));
 
+    EV << "Sending Data Message Index : " << index<< " Modified Message : "<<modifiedMessage<<"\n";
     // Send the data message
     Logger::logFrameSent(simTime().dbl(), index, modifiedMessage, CRC, frame->modificationBit , frame->isLoss, frame->duplicate, frame->delay);
     // Only send if Loss didn't occur 
