@@ -111,7 +111,10 @@ class Node : public cSimpleModule
     bool interruptTimeoutNack = false;
     double timeoutNackFinishTime = 0.0;
 
-
+    // Statistics 
+    int uploadedFrames = 0;
+    double lastTimeFrameAccepted = 0 ;
+    virtual void finish() override;
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);

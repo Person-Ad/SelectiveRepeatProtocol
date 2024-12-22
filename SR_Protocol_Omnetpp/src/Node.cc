@@ -373,7 +373,6 @@ void Node::handleIncomingDataMessage(CustomMessage_Base *receivedMsg)
     if(!Utils::isSeqNoInRecvWindow(frame_expected, seqNo, too_far)){
         return; 
     }
-    //TODO: Add Handling Lost ACK 
     double random = uniform(0, 1);
     bool lostACK = random < networkParams.LP ? true : false;
     receivedMsg->setKind(lostACK);
@@ -471,4 +470,13 @@ void Node::to_network_layer(CustomMessage_Base *receivedMsg){
     int seqNo = static_cast<int>(receivedMsg->getHeader());
     std::string unstuffedMessage = Framing::unstuff(receivedMsg->getPayload());
     Logger::logUpload(simTime().dbl(), unstuffedMessage, seqNo);
+    uploadedFrames++;
+    lastTimeFrameAccepted = simTime().dbl();
+}
+
+void Node::finish(){
+    if(!isSenderNode){
+        EV << "Total Frames Accepted: " << uploadedFrames << "\n";
+        EV << "Last Frame Accepted at Time: " << lastTimeFrameAccepted << " seconds" << "\n";
+    }
 }
