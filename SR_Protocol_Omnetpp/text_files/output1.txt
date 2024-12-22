@@ -67,12 +67,11 @@ At time [23.602], Node[0] [sent] frame with seq_num=[6] and payload=[$the string
 At time [23.502], Node[0] , Introducing channel error with code =[0000] .
 At time [24.002], Node[0] [sent] frame with seq_num=[7] and payload=[$(col legno).$] and trailer=[00010111] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
 At time [24.501], Node[1] Sending [NACK] with number [4] ,loss [No].
-At time [24.502], Node[1] Sending [NACK] with number [4] ,loss [No].
+At time [24.502], Node[1] Sending [ACK] with number [4] ,loss [No].
 At time [25.002], Node[1] Sending [ACK] with number [4] ,loss [No].
 At time [25.102], Node[1] Sending [ACK] with number [4] ,loss [No].
 At time [25.502], Node[1] Sending [ACK] with number [4] ,loss [No].
 At time [26.002], Node[0] [sent] frame with seq_num=[4] and payload=[$the strings/$ with the fingers (pizzicato)$] and trailer=[11000100] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
-At time [26.003], Node[0] [sent] frame with seq_num=[4] and payload=[$the strings/$ with the fingers (pizzicato)$] and trailer=[11000100] , Modified [-1] , Lost [No], Duplicate [0], Delay [0].
 Uploading payload = [the strings$ with the fingers (pizzicato)] and seq_num = [4] to the network layer
 Uploading payload = [and, in specialized cases, by striking] and seq_num = [5] to the network layer
 Uploading payload = [the strings with the wooden side$ of the bow] and seq_num = [6] to the network layer

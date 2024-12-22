@@ -18,7 +18,7 @@
 
 
 Define_Module(Node);
-std::string x = "0";
+std::string x = "7";
 
 void Node::initialize()
 {
@@ -401,8 +401,7 @@ void Node::handleCRCError(CustomMessage_Base* receivedMsg)
     // Send NACK only if in order
     int seqNo = static_cast<int>(receivedMsg->getHeader());
      EV<<"Invalid CRC Seq No : "<<seqNo<<"  Expected Frame: "<<frame_expected<<"\n";
-    if(seqNo == frame_expected && !sentNack[seqNo]){
-        sentNack[seqNo] = true;
+    if(seqNo == frame_expected){
         CustomMessage_Base* nackMessage = new CustomMessage_Base();
         nackMessage->setFrameType(static_cast<int>(FrameType::NACK));
         nackMessage->setAckNackNumber(seqNo);
@@ -418,8 +417,6 @@ void Node::processValidReceivedMessage(CustomMessage_Base* receivedMsg)
     frame->message = receivedMsg;
     int seqNo = static_cast<int>(receivedMsg->getHeader());
     in_buffer[seqNo % networkParams.WS] = frame;
-    // Rest SentNack boolean when valid message is received 
-    sentNack[seqNo % networkParams.WS] = false;
     EV<<"Received Seq No : "<<seqNo<<"  Expected Frame: "<<frame_expected<< " Too Far : "<<too_far<< "\n";
     bool shouldSendNack = true; 
      // Send ACK to sender 
@@ -428,6 +425,8 @@ void Node::processValidReceivedMessage(CustomMessage_Base* receivedMsg)
         EV<<"Frame: "<<frame_expected<<"\n";
         to_network_layer(in_buffer[frame_expected % networkParams.WS]->message);
         in_buffer[frame_expected % networkParams.WS] = nullptr;
+        // Rest SentNack boolean when valid message is received 
+        sentNack[frame_expected % networkParams.WS] = false;
         incrementCircular(frame_expected);
         incrementCircular(too_far);
         sendAck = true; 
@@ -436,8 +435,7 @@ void Node::processValidReceivedMessage(CustomMessage_Base* receivedMsg)
      CustomMessage_Base* ackMessage = new CustomMessage_Base();
      int ackNo = frame_expected;
      ackMessage->setAckNackNumber(ackNo);
-     if(shouldSendNack && !sentNack[ackNo % networkParams.WS]){
-        sentNack[ackNo % networkParams.WS] = true; 
+     if(shouldSendNack){
         ackMessage->setFrameType(static_cast<int>(FrameType::NACK));
      }else{
         ackMessage->setFrameType(static_cast<int>(FrameType::ACK));
@@ -458,12 +456,20 @@ void Node::sendAckMessage(CustomMessage_Base *msg){
 }
 
 void Node::sendNackMessage(CustomMessage_Base *msg){    
-    msg->setFrameType(static_cast<int>(FrameType::NACK));
+    int ackNo = msg->getAckNackNumber();
+    bool ack = false;
+    if(sentNack[ackNo % networkParams.WS]){
+        ack = true; 
+        msg->setFrameType(static_cast<int>(FrameType::ACK));
+    }else{
+        msg->setFrameType(static_cast<int>(FrameType::NACK));
+    }
+    sentNack[ackNo % networkParams.WS] = true; 
     // Send the data message
     if(!msg->getKind()){ // Check if it's not loss 
         sendDelayed(msg, networkParams.TD ,"dataGate$o");
     }
-    Logger::logACK(simTime().dbl(), msg->getAckNackNumber(), false, msg->getKind());
+    Logger::logACK(simTime().dbl(), msg->getAckNackNumber(), ack, msg->getKind());
 }
 
 void Node::to_network_layer(CustomMessage_Base *receivedMsg){
