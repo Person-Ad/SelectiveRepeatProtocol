@@ -18,7 +18,7 @@
 
 
 Define_Module(Node);
-std::string x = "6";
+std::string x = "0";
 
 void Node::initialize()
 {
@@ -376,6 +376,7 @@ void Node::handleIncomingDataMessage(CustomMessage_Base *receivedMsg)
     //TODO: Add Handling Lost ACK 
     double random = uniform(0, 1);
     bool lostACK = random < networkParams.LP ? true : false;
+    receivedMsg->setKind(lostACK);
     // Extract message details
     std::string payload = receivedMsg->getPayload(); 
     char trailerChar = receivedMsg->getTrailer(); 
@@ -406,6 +407,8 @@ void Node::handleCRCError(CustomMessage_Base* receivedMsg)
         CustomMessage_Base* nackMessage = new CustomMessage_Base();
         nackMessage->setFrameType(static_cast<int>(FrameType::NACK));
         nackMessage->setAckNackNumber(seqNo);
+        // Add Lost or not in the kind of message 
+        nackMessage->setKind(receivedMsg->getKind());
         scheduleAt(simTime() + networkParams.PT, nackMessage);
     }
 }
@@ -440,6 +443,8 @@ void Node::processValidReceivedMessage(CustomMessage_Base* receivedMsg)
      }else{
         ackMessage->setFrameType(static_cast<int>(FrameType::ACK));
      }
+     // Add Lost or not in the kind of message 
+     ackMessage->setKind(receivedMsg->getKind());
      scheduleAt(simTime() + networkParams.PT, ackMessage);
 }
 
@@ -447,15 +452,19 @@ void Node::processValidReceivedMessage(CustomMessage_Base* receivedMsg)
 void Node::sendAckMessage(CustomMessage_Base *msg){    
     msg->setFrameType(static_cast<int>(FrameType::ACK));
     // Send the data message
-    sendDelayed(msg, networkParams.TD ,"dataGate$o");
-    Logger::logACK(simTime().dbl(), msg->getAckNackNumber(), true, false);
+    if(!msg->getKind()){ // Check if it's not loss 
+        sendDelayed(msg, networkParams.TD ,"dataGate$o");
+    }
+    Logger::logACK(simTime().dbl(), msg->getAckNackNumber(), true, msg->getKind());
 }
 
 void Node::sendNackMessage(CustomMessage_Base *msg){    
     msg->setFrameType(static_cast<int>(FrameType::NACK));
     // Send the data message
-    sendDelayed(msg, networkParams.TD ,"dataGate$o");
-    Logger::logACK(simTime().dbl(), msg->getAckNackNumber(), false, false);
+    if(!msg->getKind()){ // Check if it's not loss 
+        sendDelayed(msg, networkParams.TD ,"dataGate$o");
+    }
+    Logger::logACK(simTime().dbl(), msg->getAckNackNumber(), false, msg->getKind());
 }
 
 void Node::to_network_layer(CustomMessage_Base *receivedMsg){
