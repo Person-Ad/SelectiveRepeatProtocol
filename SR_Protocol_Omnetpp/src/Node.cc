@@ -18,7 +18,7 @@
 
 
 Define_Module(Node);
-std::string x = "7";
+std::string x = "6";
 
 void Node::initialize()
 {
@@ -269,7 +269,7 @@ void Node::processMessage(int index) {
     
     Frame * frame = parseFlags(errorNumber,stuffedMessage);
     
-    char trailerChar = static_cast<char>(std::stoi(CRC, nullptr, 2));
+    char trailerChar = CRC[0];
     customMessage->setTrailer(trailerChar);
     customMessage->setHeader(static_cast<char>(index));
     
@@ -379,7 +379,7 @@ void Node::handleIncomingDataMessage(CustomMessage_Base *receivedMsg)
     // Extract message details
     std::string payload = receivedMsg->getPayload(); 
     char trailerChar = receivedMsg->getTrailer(); 
-    std::string trailer = std::bitset<8>(trailerChar).to_string(); 
+    std::string trailer = std::string(1, static_cast<char>(trailerChar)); 
  
     // Validate CRC
     bool valid = validateMessageCRC(payload, trailer);

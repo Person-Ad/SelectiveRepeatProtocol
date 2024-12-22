@@ -11,36 +11,36 @@ ErrorDetection::ErrorDetection(const std::string & generator) {
     // TODO Auto-generated constructor stub
     polynomialGenerator = generator;
 }
+static const unsigned char INIT_CRC = 0xFF;    // Initial CRC value
+static const unsigned char MSB_MASK = 0x80;    // Most Significant Bit mask (10000000)
+static const unsigned char GEN_POLY = 0x07;    // Generator polynomial (like 0x07 for CRC-8)
+static const int BITS_PER_BYTE = 8;
+
 std::string ErrorDetection::computeCRC(const std::string &data) {
-    std::string augmentedData = data;
-    augmentedData.append(polynomialGenerator.length() - 1, '0'); 
-
-    std::string remainder = augmentedData;
-
-    for (size_t i = 0; i <= augmentedData.length() - polynomialGenerator.length(); ++i) {
-        if (remainder[i] == '1') {
-            for (size_t j = 0; j < polynomialGenerator.length(); ++j) {
-                remainder[i + j] = (remainder[i + j] == polynomialGenerator[j]) ? '0' : '1';
-            }
+    unsigned char crc = INIT_CRC;
+    
+    for (unsigned char c : data) {
+        crc ^= c;
+        // Process each bit
+        for (int i = 0; i < BITS_PER_BYTE; ++i) {
+            bool hasMSB = (crc & MSB_MASK);
+            crc = hasMSB ? ((crc << 1) ^ GEN_POLY) : (crc << 1);
         }
     }
-
-    return remainder.substr(remainder.length() - (polynomialGenerator.length() - 1));
+    
+    return std::string(1, static_cast<char>(crc));
 }
 
 bool ErrorDetection::validateCRC(const std::string &dataWithCRC) {
-    std::string remainder = dataWithCRC;
-
-    for (size_t i = 0; i <= dataWithCRC.length() - polynomialGenerator.length(); ++i) {
-        if (remainder[i] == '1') {
-            for (size_t j = 0; j < polynomialGenerator.length(); ++j) {
-                remainder[i + j] = (remainder[i + j] == polynomialGenerator[j]) ? '0' : '1';
-            }
-        }
-    }
-
-    // If remainder is all zeros, CRC is valid
-    return remainder.substr(remainder.length() - (polynomialGenerator.length() - 1)) == std::string(polynomialGenerator.length() - 1, '0');
+   // Extract data and received CRC 
+   std::string data = dataWithCRC.substr(0, dataWithCRC.length() - 1);
+   unsigned char receivedCRC = static_cast<unsigned char>(dataWithCRC.back());
+   
+   // Calculate expected CRC using computeCRC
+   std::string calculatedCRC = computeCRC(data);
+   
+   // Compare calculated CRC with received CRC
+   return (static_cast<unsigned char>(calculatedCRC[0]) == receivedCRC);
 }
 
 ErrorDetection::~ErrorDetection() {
