@@ -140,9 +140,9 @@ void Node::incrementCircular(int & number){
 
 std::string Node::generateInputFilePath(int nodeIndex) 
 {
-    nodeIndex = 7; 
-    // return "../text_files/input" + std::to_string(nodeIndex) + ".txt";
-    return "../text_files/input" + x + ".txt";
+    // nodeIndex = 7; 
+    return "../text_files/input" + std::to_string(nodeIndex) + ".txt";
+    // return "../text_files/input" + x + ".txt";
 
 }
 
