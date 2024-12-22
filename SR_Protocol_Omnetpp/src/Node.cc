@@ -18,7 +18,6 @@
 
 
 Define_Module(Node);
-std::string x = "7";
 
 void Node::initialize()
 {
@@ -125,7 +124,7 @@ void Node::handleCoordinatorInitiation(CustomMessage_Base *receivedMsg)
     CustomMessage_Base *customMessage = new CustomMessage_Base();
     customMessage->setFrameType(static_cast<int>(FrameType::PrepareTime));
     scheduleAt(simTime() + startTime, customMessage);
-    Logger::initialize("../text_files/output" + x + ".txt",nodeIndex);
+    Logger::initialize("../text_files/output.txt",nodeIndex);
 }
 
 int Node::extractNodeIndex() 
@@ -140,7 +139,6 @@ void Node::incrementCircular(int & number){
 
 std::string Node::generateInputFilePath(int nodeIndex) 
 {
-    // nodeIndex = 7; 
     return "../text_files/input" + std::to_string(nodeIndex) + ".txt";
     // return "../text_files/input" + x + ".txt";
 
