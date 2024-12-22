@@ -5,8 +5,9 @@
  *      Author: Ahmed_Osamahelmy
  */
 
-
+#include <omnetpp.h>
 #include "Logger.h"
+using namespace omnetpp;
 
 // Static members initialization
 std::ofstream Logger::logFile;
@@ -76,6 +77,7 @@ void Logger::log(const std::string& message) {
     // Lock the mutex to ensure thread-safe access to logFile
     std::lock_guard<std::mutex> lock(logFileMutex);  
     logFile << message << std::endl;
+    EV << message << std::endl;
 }
 
 void Logger::cleanup() {

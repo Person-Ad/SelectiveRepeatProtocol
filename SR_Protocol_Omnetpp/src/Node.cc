@@ -18,7 +18,7 @@
 
 
 Define_Module(Node);
-std::string x = "0";
+std::string x = "7";
 
 void Node::initialize()
 {
@@ -56,7 +56,13 @@ void Node::handleMessage(cMessage *msg)
 
             case FrameType::SendTime:
                 // Send to Receiver
-                sendNextDataMessage();
+                if(interruptTimeoutNack){
+                    EV<<"TimeoutNACK Active: "<<timeoutNackFinishTime<<"\n";
+                    scheduleAt(timeoutNackFinishTime + networkParams.PT, receivedMsg);
+                    interruptTimeoutNack = false;
+                }else{
+                    sendNextDataMessage();
+                }
                 break;
             case FrameType::PrepareTime:
                 // Start Preparing 
@@ -169,14 +175,11 @@ void Node::handleNackResponse(CustomMessage_Base *receivedMsg)
     cleanMessage->setFrameType(static_cast<int>(FrameType::SendDataTimeout));
     scheduleAt(simTime() + networkParams.PT + 0.001, cleanMessage);
     interruptTimeoutNack = true; 
+    timeoutNackFinishTime = simTime().dbl() + networkParams.PT + 0.001;
 }
 
 void Node::sendNextDataMessage(){
     // This means that I can't send now 
-    if(interruptTimeoutNack){
-        return ; 
-    }
-    prevLine = "";
     isProcessing = false;
     // Extract relevant data from the message
     Frame * frame = buffer[next_frame_to_send % (networkParams.WS)];
@@ -201,7 +204,9 @@ void Node::sendNextDataMessage(){
     if(frame->duplicate){
         CustomMessage_Base* duplicatedMsg = msgToSend->dup();
         // The duplicate message has the same problems 
-        sendDelayed(duplicatedMsg, networkParams.TD + networkParams.DD + frame->delay ,"dataGate$o");
+        if(!frame->isLoss){
+            sendDelayed(duplicatedMsg, networkParams.TD + networkParams.DD + frame->delay ,"dataGate$o");
+        }
         Logger::logFrameSent(simTime().dbl() + networkParams.DD , next_frame_to_send, modifiedMessage, CRC, frame->modificationBit , frame->isLoss, 2, frame->delay);
     }
 
@@ -218,7 +223,8 @@ void Node::sendNextDataMessage(){
 }
 
 void Node::sendTimeoutDataMessage(CustomMessage_Base *msg){
-    isProcessing = false;
+    // isProcessing = false;
+    interruptTimeoutNack = false;
     // Extract relevant data from the message
     std::string stuffedMessage = msg->getPayload();
     std::string CRC = Utils::binaryStringFromChar(msg->getTrailer());
@@ -231,15 +237,6 @@ void Node::sendTimeoutDataMessage(CustomMessage_Base *msg){
     int seqNo = static_cast<int>(msg->getHeader());
     Logger::logFrameSent(simTime().dbl(), seqNo, stuffedMessage, CRC, -1 , false , 0, 0);
 
-    if(interruptTimeoutNack && !prevLine.empty()){
-        // Reverse what processMessage did     
-        nbuffered--;
-        isProcessing = false;
-        packets.push_front(prevLine);
-        prevLine = "";
-        interruptTimeoutNack = false; 
-        processMessage(next_frame_to_send);
-    }
 }
 
 void Node::processMessage(int index) {
@@ -260,7 +257,6 @@ void Node::processMessage(int index) {
     
     // Extract first message from lines
     std::string nextLine = packets.front();
-    prevLine = nextLine;
     packets.pop_front();
     std::pair<std::string,std::string> extractedMessage = Utils::extractMessage(nextLine); 
     std::string errorNumber = extractedMessage.first;  
@@ -316,7 +312,7 @@ void Node::handleTimeout(CustomMessage_Base *msg){
     //TODO: Add ScheduleAt with PT to send the Unmodified message
     timeoutMsg->setFrameType(static_cast<int>(FrameType::SendDataTimeout));
     scheduleAt(simTime() + networkParams.PT + 0.001, timeoutMsg);
-
+    timeoutNackFinishTime = simTime().dbl() + networkParams.PT + 0.001;
     interruptTimeoutNack = true; 
 }
 

@@ -1,17 +1,17 @@
 At time [0], Node[0] , Introducing channel error with code =[0010] .
 At time[0.5], Node[0] [sent] frame with seq_num=[0] and payload=[$/$An aurora, also known as the polar lights/$ or aurora polaris,$] and trailer=[01101000] , Modified [-1] , Lost [No], Duplicate [1], Delay [0]
-At time[0.6], Node[0] sent frame with seq_num=[0] and payload=[$/$An aurora, also known as the polar lights/$ or aurora polaris,$] and trailer=[01101000] , Modified [-1] , Lost [No], Duplicate [2], Delay [0]
 At time [0.5], Node[0] , Introducing channel error with code =[0000] .
+At time[0.6], Node[0] [sent] frame with seq_num=[0] and payload=[$/$An aurora, also known as the polar lights/$ or aurora polaris,$] and trailer=[01101000] , Modified [-1] , Lost [No], Duplicate [2], Delay [0]
 At time[1], Node[0] [sent] frame with seq_num=[1] and payload=[$is a natural light display in Earth's sky,$] and trailer=[10101101] , Modified [-1] , Lost [No], Duplicate [0], Delay [0]
 At time [1], Node[0] , Introducing channel error with code =[0010] .
 Uploading payload=[$An aurora, also known as the polar lights$ or aurora polaris,] and seq_num=[0] to the network layer
 At time[1.5], Node[0] [sent] frame with seq_num=[2] and payload=[$predominantly seen in high-latitude regions$] and trailer=[01000110] , Modified [-1] , Lost [No], Duplicate [1], Delay [0]
-At time[1.6], Node[0] sent frame with seq_num=[2] and payload=[$predominantly seen in high-latitude regions$] and trailer=[01000110] , Modified [-1] , Lost [No], Duplicate [2], Delay [0]
 At time [1.5], Node[0] , Introducing channel error with code =[1010] .
+At time[1.6], Node[0] [sent] frame with seq_num=[2] and payload=[$predominantly seen in high-latitude regions$] and trailer=[01000110] , Modified [-1] , Lost [No], Duplicate [2], Delay [0]
 Uploading payload=[is a natural light display in Earth's sky,] and seq_num=[1] to the network layer
 At time[2], Node[1] Sending [ACK] with number [1], loss[No] 
-At time[2], Node[0] [sent] frame with seq_num=[3] and payload=[$(around the Arctic/. and Antarctic).$] and trailer=[01001100] , Modified [160] , Lost [No], Duplicate [1], Delay [0]
-At time[2.1], Node[0] sent frame with seq_num=[3] and payload=[$(around the Arctic/. and Antarctic).$] and trailer=[01001100] , Modified [160] , Lost [No], Duplicate [2], Delay [0]
+At time[2], Node[0] [sent] frame with seq_num=[3] and payload=[$(arou~d the Arctic// and Antarctic).$] and trailer=[01001100] , Modified [52] , Lost [No], Duplicate [1], Delay [0]
+At time[2.1], Node[0] [sent] frame with seq_num=[3] and payload=[$(arou~d the Arctic// and Antarctic).$] and trailer=[01001100] , Modified [52] , Lost [No], Duplicate [2], Delay [0]
 Uploading payload=[predominantly seen in high-latitude regions] and seq_num=[2] to the network layer
 At time[2.5], Node[1] Sending [ACK] with number [2], loss[No] 
 At time [3], Node[0] , Introducing channel error with code =[0000] .
@@ -29,7 +29,7 @@ Uploading payload=[(around the Arctic/ and Antarctic).] and seq_num=[3] to the n
 Uploading payload=[Auroras display dynamic patterns of brilliant lights/] and seq_num=[4] to the network layer
 At time[6.501], Node[1] Sending [ACK] with number [5], loss[No] 
 At time [7.501], Node[0] , Introducing channel error with code =[1000] .
-At time[8.001], Node[0] [sent] frame with seq_num=[7] and payload=[$or dyncmic flickers covering the entire sky/$$] and trailer=[10100110] , Modified [57] , Lost [No], Duplicate [0], Delay [0]
+At time[8.001], Node[0] [sent] frame with seq_num=[7] and payload=[$or dynamic fli�kers covering the entire sky/$$] and trailer=[10100110] , Modified [127] , Lost [No], Duplicate [0], Delay [0]
 Uploading payload=[that appear as curtains,] and seq_num=[5] to the network layer
 At time[9.5], Node[1] Sending [ACK] with number [6], loss[No] 
 Timeout event at [15.501] at Node[0] for frame with seq_num=[6]

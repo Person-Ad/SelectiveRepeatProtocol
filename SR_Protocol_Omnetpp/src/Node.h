@@ -109,9 +109,9 @@ class Node : public cSimpleModule
     bool isDelayed = false;
 
     bool interruptTimeoutNack = false;
+    double timeoutNackFinishTime = 0.0;
 
-    // Temporary data for interrupting processing when NACK / Timeout happens 
-    std::string prevLine = ""; 
+
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
